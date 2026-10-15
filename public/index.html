@@ -71,16 +71,25 @@
           </div>
 
           <div id="container-src-url" class="hidden space-y-2">
-            <div class="flex gap-2">
+            <div class="flex gap-2 items-center">
               <input type="url" id="input-img-url" placeholder="Paste product URL (e.g. https://www.hillhousehome.com/products/...)" class="flex-1 p-2.5 border rounded-xl text-sm">
-              <button type="button" onclick="loadWebPageUrl()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-xs font-semibold shadow-sm">Load & Scan</button>
+              
+              <!-- Icon Import Button with Tooltip -->
+              <div class="relative group">
+                <button type="button" onclick="loadWebPageUrl()" class="bg-indigo-600 hover:bg-indigo-700 text-white p-2.5 rounded-xl text-lg flex items-center justify-center shadow-sm">
+                  📥
+                </button>
+                <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover:block bg-gray-900 text-white text-[10px] py-1 px-2 rounded whitespace-nowrap z-30 shadow-lg">
+                  Load & Scan
+                </div>
+              </div>
+
             </div>
           </div>
 
           <!-- SIDE-BY-SIDE EDITOR & ITEM DETAILS -->
           <div id="editor-container" class="hidden space-y-4 pt-4 border-t">
             
-            <!-- Gallery Views Selector -->
             <div id="scraped-views-container" class="hidden space-y-1">
               <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider block">Available Item Angles / Perspectives</label>
               <div id="scraped-views-list" class="flex gap-2 overflow-x-auto pb-1"></div>
@@ -155,14 +164,33 @@
         </div>
       </div>
 
+      <!-- INVENTORY TOOLBAR WITH WINDOWS FILE EXPLORER VIEW DROPDOWN MENU -->
       <div class="bg-white p-4 rounded-2xl border shadow-sm space-y-3">
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <h2 class="text-lg font-bold text-gray-900">Your Closet Items</h2>
           
-          <div class="flex items-center gap-1 bg-gray-100 p-1 rounded-xl text-xs font-semibold">
-            <button onclick="setViewMode('grid-3')" id="btn-view-grid-3" class="px-2.5 py-1.5 rounded-lg bg-white shadow-xs text-indigo-600">Grid (3-4)</button>
-            <button onclick="setViewMode('grid-2')" id="btn-view-grid-2" class="px-2.5 py-1.5 rounded-lg text-gray-600">Grid (2)</button>
-            <button onclick="setViewMode('single')" id="btn-view-single" class="px-2.5 py-1.5 rounded-lg text-gray-600">1 at a Time</button>
+          <!-- Windows File Explorer View Dropdown -->
+          <div class="relative">
+            <button onclick="toggleViewDropdown()" class="flex items-center gap-2 px-3 py-1.5 rounded-xl border bg-gray-50 hover:bg-gray-100 text-xs font-semibold text-gray-700 shadow-xs">
+              <span id="current-view-icon">田</span>
+              <span id="current-view-label">Medium icons</span>
+              <span class="text-[10px]">▼</span>
+            </button>
+
+            <div id="view-menu-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white border rounded-2xl shadow-xl z-30 p-1.5 space-y-1 text-xs">
+              <button onclick="selectViewMode('grid-2', 'Large icons', '🔲')" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-indigo-50 text-gray-700 hover:text-indigo-600 font-medium text-left">
+                <span>🔲</span> Large icons
+              </button>
+              <button onclick="selectViewMode('grid-3', 'Medium icons', '田')" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-indigo-50 text-gray-700 hover:text-indigo-600 font-medium text-left">
+                <span>田</span> Medium icons
+              </button>
+              <button onclick="selectViewMode('tiles', 'Tiles / List', '📑')" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-indigo-50 text-gray-700 hover:text-indigo-600 font-medium text-left">
+                <span>📑</span> Tiles / List
+              </button>
+              <button onclick="selectViewMode('single', '1 at a Time', '🔍')" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-indigo-50 text-gray-700 hover:text-indigo-600 font-medium text-left">
+                <span>🔍</span> 1 at a Time
+              </button>
+            </div>
           </div>
         </div>
 
@@ -201,13 +229,14 @@
       <div class="flex items-center justify-between">
         <div>
           <h2 class="text-lg font-bold text-gray-900">Virtual Stylist Canvas</h2>
-          <p class="text-xs text-gray-500">Tap items below onto model. Click item to move or resize using blue handles.</p>
+          <p class="text-xs text-gray-500">Tap items below onto model. Click an item to drag or scale using corner handles.</p>
         </div>
-        <button onclick="saveOutfit()" class="bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-emerald-700 shadow-sm">Save Outfit Idea</button>
+        <button onclick="openSaveOutfitModal()" class="bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-emerald-700 shadow-sm">Save Outfit Idea</button>
       </div>
 
       <div class="relative flex flex-col md:flex-row gap-4">
         
+        <!-- Interactive Model Canvas -->
         <div id="canvas-wrapper" class="flex-1 h-[500px] bg-white border-2 border-indigo-200 rounded-2xl relative overflow-hidden flex items-center justify-center shadow-inner canvas-grid">
           
           <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
@@ -226,24 +255,53 @@
           <div id="canvas-items-container" class="absolute inset-0"></div>
         </div>
 
-        <div id="canvas-controls" class="w-full md:w-48 bg-white p-3 rounded-2xl border space-y-3 hidden flex-shrink-0">
-          <h3 class="text-xs font-bold text-gray-700 uppercase tracking-wider border-b pb-1">Selected Garment</h3>
+        <!-- RIGHT SIDEBAR: FILTERS & SELECTED ITEM LAYER CONTROLS -->
+        <div class="w-full md:w-56 bg-white p-3 rounded-2xl border space-y-4 flex-shrink-0 shadow-sm">
           
+          <!-- Filters for Tray Below -->
           <div class="space-y-2">
-            <div class="pt-1 space-y-1">
-              <label class="text-[11px] font-semibold text-gray-500 block">Layering Order</label>
+            <h3 class="text-xs font-bold text-gray-700 uppercase tracking-wider border-b pb-1">Filter Wardrobe Tray</h3>
+            
+            <div>
+              <label class="text-[11px] font-semibold text-gray-500">Category</label>
+              <select id="canvas-filter-cat" onchange="renderCanvasPicker()" class="w-full p-1.5 border rounded-lg text-xs bg-gray-50 mt-0.5">
+                <option value="ALL">All Categories</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-[11px] font-semibold text-gray-500">Color</label>
+              <select id="canvas-filter-col" onchange="renderCanvasPicker()" class="w-full p-1.5 border rounded-lg text-xs bg-gray-50 mt-0.5">
+                <option value="ALL">All Colors</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-[11px] font-semibold text-gray-500">Brand</label>
+              <select id="canvas-filter-brand" onchange="renderCanvasPicker()" class="w-full p-1.5 border rounded-lg text-xs bg-gray-50 mt-0.5">
+                <option value="ALL">All Brands</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Layering & Delete Controls for Selected Item -->
+          <div id="canvas-controls" class="hidden space-y-2 pt-2 border-t">
+            <h4 class="text-[11px] font-bold text-indigo-600 uppercase tracking-wider">Selected Garment</h4>
+            
+            <div class="space-y-1">
+              <label class="text-[10px] font-semibold text-gray-400 block">Layering Order</label>
               <div class="flex gap-1">
-                <button onclick="changeSelectedZIndex(1)" class="flex-1 py-1 bg-gray-100 hover:bg-gray-200 rounded text-[11px] font-semibold">Bring Forward ↑</button>
-                <button onclick="changeSelectedZIndex(-1)" class="flex-1 py-1 bg-gray-100 hover:bg-gray-200 rounded text-[11px] font-semibold">Send Back ↓</button>
+                <button onclick="changeSelectedZIndex(1)" class="flex-1 py-1 bg-gray-100 hover:bg-gray-200 rounded text-[11px] font-semibold text-gray-700">Bring Forward ↑</button>
+                <button onclick="changeSelectedZIndex(-1)" class="flex-1 py-1 bg-gray-100 hover:bg-gray-200 rounded text-[11px] font-semibold text-gray-700">Send Back ↓</button>
               </div>
             </div>
 
-            <button onclick="removeSelectedCanvasItem()" class="w-full py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg text-xs font-semibold mt-2">Remove Item 🗑️</button>
+            <button onclick="removeSelectedCanvasItem()" class="w-full py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg text-xs font-semibold">Remove Item 🗑️</button>
           </div>
+
         </div>
 
       </div>
 
+      <!-- Wardrobe Selection Tray -->
       <div class="bg-white p-3 rounded-2xl border space-y-2">
         <h3 class="text-xs font-bold text-gray-700 uppercase tracking-wider">Tap item to place onto model:</h3>
         <div id="canvas-picker" class="flex gap-3 overflow-x-auto pb-1"></div>
@@ -258,6 +316,26 @@
 
   </main>
 
+  <!-- SAVE OUTFIT CUSTOM TITLE MODAL -->
+  <div id="modal-save-outfit" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-5 max-w-sm w-full space-y-4 shadow-xl">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="font-bold text-gray-900">Save Outfit Idea</h3>
+        <button onclick="closeSaveOutfitModal()" class="text-gray-400 text-lg">✕</button>
+      </div>
+      
+      <div>
+        <label class="text-xs font-semibold text-gray-500">Outfit Title / Header</label>
+        <input type="text" id="input-outfit-title" placeholder="e.g. Summer Brunch, Garden Party, Work Chic" class="w-full p-2.5 border rounded-xl text-sm mt-1">
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2 border-t">
+        <button onclick="closeSaveOutfitModal()" class="px-3 py-1.5 text-xs text-gray-600">Cancel</button>
+        <button onclick="saveOutfitSubmit()" class="px-4 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-semibold">Save to Lookbook</button>
+      </div>
+    </div>
+  </div>
+
   <!-- CLOSET CARD ITEM DETAIL POPUP GALLERY MODAL -->
   <div id="modal-view-item" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl p-5 max-w-lg w-full space-y-4 shadow-xl">
@@ -267,15 +345,12 @@
       </div>
 
       <div class="space-y-3">
-        <!-- Main Image -->
         <div class="w-full h-72 bg-gray-100 rounded-xl overflow-hidden flex items-center justify-center">
           <img id="view-modal-main-img" class="max-w-full max-h-full object-contain">
         </div>
 
-        <!-- Thumbnails gallery (back, side, etc.) -->
         <div id="view-modal-thumbs" class="flex gap-2 overflow-x-auto pb-1"></div>
 
-        <!-- Item Info -->
         <div class="grid grid-cols-2 gap-2 text-xs pt-2 border-t">
           <div><span class="text-gray-400 block">Category:</span><strong id="view-modal-cat" class="text-gray-800"></strong></div>
           <div><span class="text-gray-400 block">Brand:</span><strong id="view-modal-brand" class="text-gray-800"></strong></div>
@@ -599,6 +674,20 @@
       }
     }
 
+    // WINDOWS FILE EXPLORER VIEW MENU DROPDOWN
+    function toggleViewDropdown() {
+      const menu = document.getElementById('view-menu-dropdown');
+      menu.classList.toggle('hidden');
+    }
+
+    function selectViewMode(mode, label, icon) {
+      currentViewMode = mode;
+      document.getElementById('current-view-label').innerText = label;
+      document.getElementById('current-view-icon').innerText = icon;
+      document.getElementById('view-menu-dropdown').classList.add('hidden');
+      renderWardrobe();
+    }
+
     // POPUP GALLERY MODAL
     function openViewItemModal(id) {
       const item = wardrobe.find(i => i.id === id);
@@ -747,19 +836,11 @@
 
       document.getElementById('filter-color').innerHTML = `<option value="ALL">All Colors</option>` + colors.map(c => `<option value="${c}">${c}</option>`).join('');
       document.getElementById('filter-brand').innerHTML = `<option value="ALL">All Brands</option>` + brands.map(b => `<option value="${b}">${b}</option>`).join('');
-    }
 
-    function setViewMode(mode) {
-      currentViewMode = mode;
-      ['grid-3', 'grid-2', 'single'].forEach(m => {
-        const btn = document.getElementById(`btn-view-${m}`);
-        if (m === mode) {
-          btn.className = 'px-2.5 py-1.5 rounded-lg bg-white shadow-xs text-indigo-600 font-semibold';
-        } else {
-          btn.className = 'px-2.5 py-1.5 rounded-lg text-gray-600 font-semibold';
-        }
-      });
-      renderWardrobe();
+      // Populate Outfit Canvas Filter Dropdowns
+      document.getElementById('canvas-filter-cat').innerHTML = `<option value="ALL">All Categories</option>` + categories.filter(c => c !== 'Other').map(c => `<option value="${c}">${c}</option>`).join('');
+      document.getElementById('canvas-filter-col').innerHTML = `<option value="ALL">All Colors</option>` + colors.map(c => `<option value="${c}">${c}</option>`).join('');
+      document.getElementById('canvas-filter-brand').innerHTML = `<option value="ALL">All Brands</option>` + brands.map(b => `<option value="${b}">${b}</option>`).join('');
     }
 
     function renderWardrobe() {
@@ -813,6 +894,32 @@
         return;
       }
 
+      if (currentViewMode === 'tiles') {
+        container.innerHTML = `
+          <div class="space-y-2">
+            ${filtered.map(item => `
+              <div onclick="openViewItemModal(${item.id})" class="bg-white rounded-xl border p-2 shadow-sm flex items-center justify-between cursor-pointer hover:border-indigo-300">
+                <div class="flex items-center gap-3">
+                  <div class="w-14 h-14 bg-gray-50 rounded-lg flex items-center justify-center overflow-hidden">
+                    <img src="${item.image}" class="max-w-full max-h-full object-contain">
+                  </div>
+                  <div>
+                    <h4 class="font-bold text-sm text-gray-900">${item.brand}</h4>
+                    <p class="text-xs text-gray-500">${item.category} • ${item.color} •${item.size}</p>
+                    <p class="text-[11px] text-gray-400">Bought: ${item.whereBought}</p>
+                  </div>
+                </div>
+                <div class="flex gap-1">
+                  <button onclick="openEditItemModal(${item.id}, event)" class="bg-yellow-100 hover:bg-yellow-200 text-yellow-800 text-xs px-2 py-1 rounded-md font-bold">✏️</button>
+                  <button onclick="deleteItem(${item.id}, event)" class="bg-red-100 hover:bg-red-200 text-red-600 text-xs px-2 py-1 rounded-md font-bold">🗑️</button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+        return;
+      }
+
       const gridClass = currentViewMode === 'grid-2' ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4';
 
       container.innerHTML = `
@@ -856,7 +963,23 @@
     // CANVAS WITH CORNER HANDLES FOR STYLING
     function renderCanvasPicker() {
       const tray = document.getElementById('canvas-picker');
-      tray.innerHTML = wardrobe.map(item => `
+      const filterCat = document.getElementById('canvas-filter-cat')?.value || 'ALL';
+      const filterCol = document.getElementById('canvas-filter-col')?.value || 'ALL';
+      const filterBr = document.getElementById('canvas-filter-brand')?.value || 'ALL';
+
+      const filtered = wardrobe.filter(item => {
+        const matchesCat = (filterCat === 'ALL' || item.category === filterCat);
+        const matchesCol = (filterCol === 'ALL' || item.color === filterCol);
+        const matchesBr = (filterBr === 'ALL' || item.brand === filterBr);
+        return matchesCat && matchesCol && matchesBr;
+      });
+
+      if (filtered.length === 0) {
+        tray.innerHTML = `<p class="text-xs text-gray-400 py-4">No items match your tray filters.</p>`;
+        return;
+      }
+
+      tray.innerHTML = filtered.map(item => `
         <img src="${item.image}" onclick="addToCanvas(${item.id})" class="w-20 h-20 object-contain rounded-xl border-2 border-transparent hover:border-indigo-600 cursor-pointer flex-shrink-0 bg-white p-1 shadow-xs">
       `).join('');
     }
@@ -985,11 +1108,23 @@
       renderCanvasItems();
     }
 
-    function saveOutfit() {
+    // SAVE OUTFIT CUSTOM TITLE MODAL LOGIC
+    function openSaveOutfitModal() {
       if (canvasItems.length === 0) return alert('Add at least one item onto the mannequin first.');
+      document.getElementById('input-outfit-title').value = '';
+      document.getElementById('modal-save-outfit').classList.remove('hidden');
+    }
+
+    function closeSaveOutfitModal() {
+      document.getElementById('modal-save-outfit').classList.add('hidden');
+    }
+
+    function saveOutfitSubmit() {
+      const customTitle = document.getElementById('input-outfit-title').value.trim() || 'Untitled Outfit Idea';
 
       const outfit = {
         id: Date.now(),
+        title: customTitle,
         date: new Date().toLocaleDateString(),
         items: canvasItems.map(i => ({ image: i.image, category: i.category }))
       };
@@ -999,11 +1134,11 @@
 
       canvasItems = [];
       selectedCanvasItemId = null;
+      closeSaveOutfitModal();
       document.getElementById('canvas-controls').classList.add('hidden');
       document.getElementById('canvas-empty-msg').classList.remove('hidden');
       renderCanvasItems();
 
-      alert('Stylist outfit idea saved to Lookbook!');
       switchTab('saved');
     }
 
@@ -1016,9 +1151,9 @@
 
       grid.innerHTML = outfits.map(o => `
         <div class="bg-white p-4 rounded-xl border shadow-sm space-y-3">
-          <div class="flex justify-between items-center">
-            <span class="text-xs font-bold text-gray-400">Created: ${o.date}</span>
-            <span class="text-xs bg-indigo-50 text-indigo-600 px-2.5 py-0.5 rounded-full font-semibold">${o.items.length} Items</span>
+          <div class="flex justify-between items-center border-b pb-2">
+            <h3 class="font-bold text-gray-900 text-sm">${o.title || 'Outfit Idea'}</h3>
+            <span class="text-[11px] font-semibold text-gray-400">${o.date}</span>
           </div>
           <div class="flex gap-2 overflow-x-auto pb-1">
             ${o.items.map(i => `<img src="${i.image}" class="w-16 h-16 object-contain rounded-lg border p-1 bg-gray-50">`).join('')}
