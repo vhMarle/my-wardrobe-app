@@ -9,45 +9,99 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 app.use(cors());
 app.use(express.json({ limit: '20mb' }));
-
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Helper to extract meta tags from scraped HTML
+// Helper to extract meta tags
 function extractMetaTag(html, property) {
   const match = html.match(new RegExp(`<meta[^>]*property=["']${property}["'][^>]*content=["']([^"']*)["']`, 'i')) ||
                 html.match(new RegExp(`<meta[^>]*name=["']${property}["'][^>]*content=["']([^"']*)["']`, 'i'));
   return match ? match[1] : null;
 }
 
-// URL Scraping & Metadata Extraction Endpoint
+// Clean raw domain names into human-readable brand names
+function formatDomainToBrand(urlStr) {
+  try {
+    const hostname = new URL(urlStr).hostname.replace(/^www\./i, '');
+    const mainDomain = hostname.split('.')[0].toLowerCase();
+
+    // Custom domain mappings for popular stores
+    const knownStores = {
+      'hillhousehome': 'Hill House Home',
+      'nordstrom': 'Nordstrom',
+      'zara': 'Zara',
+      'anthropologie': 'Anthropologie',
+      'freepeople': 'Free People',
+      'jcrew': 'J.Crew',
+      'madewell': 'Madewell',
+      'revolve': 'Revolve',
+      'asos': 'ASOS',
+      'target': 'Target',
+      'amazon': 'Amazon'
+    };
+
+    if (knownStores[mainDomain]) return knownStores[mainDomain];
+
+    // Fallback: convert camelCase or joined words into Title Case
+    return mainDomain
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .replace(/_/g, ' ')
+      .replace(/-/g, ' ')
+      .replace(/\b\w/g, char => char.toUpperCase());
+  } catch (e) {
+    return 'Unknown Store';
+  }
+}
+
+// URL Scraping & Metadata Endpoint
 app.post('/api/scrape-url', async (req, res) => {
   try {
     const { url } = req.body;
-    if (!url) return res.status(400).json({ success: false, error: 'URL required' });
+    if (!url) return res.status(400).json({ success: false, error: 'URL is required' });
 
-    // Fetch product page HTML with browser headers
     const pageResponse = await fetch(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
       }
     });
 
     const contentType = pageResponse.headers.get('content-type') || '';
-
     let imageUrl = '';
     let pageTitle = '';
     let scrapedBrand = '';
 
-    // If direct image URL provided
+    const storeName = formatDomainToBrand(url);
+
     if (contentType.startsWith('image/')) {
       imageUrl = url;
     } else {
       const html = await pageResponse.text();
+      
+      // Extract OpenGraph details
       imageUrl = extractMetaTag(html, 'og:image') || extractMetaTag(html, 'twitter:image') || '';
       pageTitle = extractMetaTag(html, 'og:title') || extractMetaTag(html, 'twitter:title') || '';
-      scrapedBrand = extractMetaTag(html, 'og:site_name') || extractMetaTag(html, 'og:brand') || '';
+      scrapedBrand = extractMetaTag(html, 'og:site_name') || extractMetaTag(html, 'og:brand') || storeName;
 
-      // Fallback relative image URL handling
+      // Parse JSON-LD structured data if available (common on Shopify stores like Hill House)
+      const jsonLdMatch = html.match(/<script type=["']application\/ld\+json["']>([\s\S]*?)<\/script>/gi);
+      if (jsonLdMatch) {
+        for (const tag of jsonLdMatch) {
+          try {
+            const cleanJson = tag.replace(/<script[^>]*>/i, '').replace(/<\/script>/i, '').trim();
+            const json = JSON.parse(cleanJson);
+            
+            const product = Array.isArray(json) ? json.find(i => i['@type'] === 'Product') : (json['@type'] === 'Product' ? json : null);
+            if (product) {
+              if (product.image) {
+                imageUrl = Array.isArray(product.image) ? product.image[0] : (product.image.url || product.image);
+              }
+              if (product.name) pageTitle = product.name;
+              if (product.brand) scrapedBrand = product.brand.name || product.brand;
+            }
+          } catch (e) {}
+        }
+      }
+
       if (imageUrl && !imageUrl.startsWith('http')) {
         const urlObj = new URL(url);
         imageUrl = `${urlObj.origin}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
@@ -55,30 +109,22 @@ app.post('/api/scrape-url', async (req, res) => {
     }
 
     if (!imageUrl) {
-      return res.status(400).json({ success: false, error: 'Could not extract product image from URL.' });
+      return res.status(400).json({ success: false, error: 'Could not find a high-resolution product image on this URL.' });
     }
 
-    // Convert scraped image to Base64 buffer
+    // Convert scraped image to Base64
     const imgResponse = await fetch(imageUrl);
     const imgBuffer = await imgResponse.buffer();
     const mimeType = imgResponse.headers.get('content-type') || 'image/jpeg';
     const base64Image = `data:${mimeType};base64,${imgBuffer.toString('base64')}`;
-
-    // Auto-detect store name from domain URL
-    let domainBrand = '';
-    try {
-      const parsedUrl = new URL(url);
-      domainBrand = parsedUrl.hostname.replace('www.', '').split('.')[0];
-      domainBrand = domainBrand.charAt(0).toUpperCase() + domainBrand.slice(1);
-    } catch (e) {}
 
     res.json({
       success: true,
       base64Image,
       metadata: {
         title: pageTitle,
-        brand: scrapedBrand || domainBrand,
-        store: domainBrand
+        brand: scrapedBrand || storeName,
+        store: storeName
       }
     });
   } catch (err) {
@@ -87,7 +133,7 @@ app.post('/api/scrape-url', async (req, res) => {
   }
 });
 
-// AI Auto-Tagging API Endpoint
+// AI Auto-Tagging Endpoint
 app.post('/api/analyze-clothing', async (req, res) => {
   try {
     const { base64Image, metadata } = req.body;
@@ -96,7 +142,9 @@ app.post('/api/analyze-clothing', async (req, res) => {
       return res.status(500).json({ success: false, error: 'OpenAI API key missing on server.' });
     }
 
-    const contextText = metadata ? `Context from Web Page - Title: "${metadata.title}", Detected Retailer: "${metadata.store}".` : '';
+    const contextPrompt = metadata 
+      ? `Product Title: "${metadata.title || ''}", Primary Brand: "${metadata.brand || ''}", Retailer Store Name: "${metadata.store || ''}".`
+      : '';
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -112,7 +160,13 @@ app.post('/api/analyze-clothing', async (req, res) => {
             content: [
               {
                 type: 'text',
-                text: `Analyze this clothing/accessory photo. ${contextText} Identify: 1. Color name, 2. Brand name (check visible tags or context), 3. Size (return "Unknown" if not visible), 4. Where bought/retailer name, 5. Category (must be one of: Clothing, Jackets/Coats, Shoes, Necklaces, Bangles, Earrings, Other). Output strictly valid JSON with keys: "color", "brand", "size", "whereBought", "category".`
+                text: `Analyze this clothing or accessory image. ${contextPrompt} Extract: 
+                1. "color": Primary color name (e.g., Emerald Green, Navy Blue).
+                2. "brand": Brand name (use provided metadata brand if available, else look for logos or tags).
+                3. "size": Size (return "Unknown" if not visible).
+                4. "whereBought": Retailer name where purchased (if metadata indicates store like "${metadata?.store || ''}", MUST output "${metadata?.store || ''}").
+                5. "category": Must be strictly one of: "Clothing", "Jackets/Coats", "Shoes", "Necklaces", "Bangles", "Earrings", "Other".
+                Output strictly valid JSON with keys: "color", "brand", "size", "whereBought", "category".`
               },
               {
                 type: 'image_url',
