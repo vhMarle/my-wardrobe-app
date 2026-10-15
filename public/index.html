@@ -1,641 +1,196 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Digital Wardrobe & Outfit Planner</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    .canvas-grid {
-      background-size: 20px 20px;
-      background-image: radial-gradient(circle, #e5e7eb 1px, transparent 1px);
-    }
-  </style>
-</head>
-<body class="bg-gray-50 text-gray-800 font-sans min-h-screen pb-16">
-  
-  <header class="bg-white border-b sticky top-0 z-40 px-4 py-3 flex items-center justify-between shadow-sm">
-    <h1 class="text-xl font-bold text-indigo-600 flex items-center gap-2">
-      👔 My Wardrobe
-    </h1>
-    <nav class="flex gap-2">
-      <button onclick="switchTab('wardrobe')" id="tab-wardrobe" class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-indigo-600 text-white">Closet</button>
-      <button onclick="switchTab('outfit')" id="tab-outfit" class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-gray-100 text-gray-700">Outfit Canvas</button>
-      <button onclick="switchTab('saved')" id="tab-saved" class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-gray-100 text-gray-700">Lookbook</button>
-    </nav>
-  </header>
+const express = require('express');
+const cors = require('cors');
+const fetch = require('node-fetch');
+const path = require('path');
 
-  <main class="max-w-4xl mx-auto p-4">
-    
-    <section id="view-wardrobe" class="space-y-6">
+const app = express();
+const PORT = process.env.PORT || 3000;
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+
+app.use(cors());
+app.use(express.json({ limit: '20mb' }));
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Helper to extract meta tags
+function extractMetaTag(html, property) {
+  const match = html.match(new RegExp(`<meta[^>]*property=["']${property}["'][^>]*content=["']([^"']*)["']`, 'i')) ||
+                html.match(new RegExp(`<meta[^>]*name=["']${property}["'][^>]*content=["']([^"']*)["']`, 'i'));
+  return match ? match[1] : null;
+}
+
+// Clean raw domain names into human-readable brand names
+function formatDomainToBrand(urlStr) {
+  try {
+    const hostname = new URL(urlStr).hostname.replace(/^www\./i, '');
+    const mainDomain = hostname.split('.')[0].toLowerCase();
+
+    // Custom domain mappings for popular stores
+    const knownStores = {
+      'hillhousehome': 'Hill House Home',
+      'nordstrom': 'Nordstrom',
+      'zara': 'Zara',
+      'anthropologie': 'Anthropologie',
+      'freepeople': 'Free People',
+      'jcrew': 'J.Crew',
+      'madewell': 'Madewell',
+      'revolve': 'Revolve',
+      'asos': 'ASOS',
+      'target': 'Target',
+      'amazon': 'Amazon'
+    };
+
+    if (knownStores[mainDomain]) return knownStores[mainDomain];
+
+    // Fallback: convert camelCase or joined words into Title Case
+    return mainDomain
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .replace(/_/g, ' ')
+      .replace(/-/g, ' ')
+      .replace(/\b\w/g, char => char.toUpperCase());
+  } catch (e) {
+    return 'Unknown Store';
+  }
+}
+
+// URL Scraping & Metadata Endpoint
+app.post('/api/scrape-url', async (req, res) => {
+  try {
+    const { url } = req.body;
+    if (!url) return res.status(400).json({ success: false, error: 'URL is required' });
+
+    const pageResponse = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
+      }
+    });
+
+    const contentType = pageResponse.headers.get('content-type') || '';
+    let imageUrl = '';
+    let pageTitle = '';
+    let scrapedBrand = '';
+
+    const storeName = formatDomainToBrand(url);
+
+    if (contentType.startsWith('image/')) {
+      imageUrl = url;
+    } else {
+      const html = await pageResponse.text();
       
-      <div class="bg-white p-5 rounded-2xl border shadow-sm space-y-4">
-        <h2 class="text-lg font-bold text-gray-900">Add New Item</h2>
-        
-        <div class="space-y-3">
-          <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider">1. Choose Photo Source</label>
-          <div class="flex gap-2">
-            <button type="button" onclick="setImageSourceMode('file')" id="btn-src-file" class="flex-1 py-2 px-3 border rounded-xl text-xs font-semibold bg-indigo-50 border-indigo-600 text-indigo-600 flex items-center justify-center gap-1.5">
-              📷 Camera / Gallery
-            </button>
-            <button type="button" onclick="setImageSourceMode('url')" id="btn-src-url" class="flex-1 py-2 px-3 border rounded-xl text-xs font-semibold bg-gray-50 border-gray-200 text-gray-600 flex items-center justify-center gap-1.5">
-              🌐 Web Product Link / Image URL
-            </button>
-          </div>
+      // Extract OpenGraph details
+      imageUrl = extractMetaTag(html, 'og:image') || extractMetaTag(html, 'twitter:image') || '';
+      pageTitle = extractMetaTag(html, 'og:title') || extractMetaTag(html, 'twitter:title') || '';
+      scrapedBrand = extractMetaTag(html, 'og:site_name') || extractMetaTag(html, 'og:brand') || storeName;
 
-          <!-- Mode A: File Upload / Camera -->
-          <div id="container-src-file" class="block">
-            <label class="w-full h-24 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 overflow-hidden relative bg-gray-50">
-              <div class="text-center p-4">
-                <span class="text-2xl">📷</span>
-                <p class="text-xs text-gray-500 font-medium">Tap to upload from photo gallery or take a picture</p>
-              </div>
-              <input type="file" id="file-input" accept="image/*" class="hidden" onchange="handleFileSelect(event)">
-            </label>
-          </div>
-
-          <!-- Mode B: URL Input -->
-          <div id="container-src-url" class="hidden space-y-2">
-            <div class="flex gap-2">
-              <input type="url" id="input-img-url" placeholder="Paste store product URL (e.g., hillhousehome.com/...)" class="flex-1 p-2.5 border rounded-xl text-sm">
-              <button type="button" onclick="loadWebPageUrl()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-xs font-semibold">Import & Scan</button>
-            </div>
-          </div>
-
-          <!-- INTERACTIVE IMAGE PREVIEW & ADJUST CANVAS -->
-          <div id="editor-container" class="hidden space-y-2 pt-2 border-t">
-            <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Image Preview & Adjustment</label>
-            <div class="flex flex-col sm:flex-row gap-4 items-center">
-              
-              <!-- Square Auto-Fit Box -->
-              <div class="w-64 h-64 border-2 border-indigo-200 rounded-2xl bg-gray-100 overflow-hidden relative flex items-center justify-center shadow-inner">
-                <img id="image-preview" class="max-w-full max-h-full object-contain transition-transform duration-75" style="transform: translate(0px, 0px) scale(1);">
-              </div>
-
-              <!-- Drag / Pan / Scale Controls -->
-              <div class="flex-1 space-y-3 w-full bg-gray-50 p-3 rounded-xl border">
-                <div class="space-y-1">
-                  <div class="flex justify-between text-xs font-semibold text-gray-600">
-                    <span>Zoom Level</span>
-                    <span id="zoom-val">100%</span>
-                  </div>
-                  <input type="range" id="zoom-slider" min="0.5" max="2.5" step="0.05" value="1" oninput="updateImageTransform()" class="w-full accent-indigo-600">
-                </div>
-
-                <div class="space-y-1">
-                  <span class="text-xs font-semibold text-gray-600 block">Position Shift</span>
-                  <div class="grid grid-cols-3 gap-1 max-w-[140px] mx-auto text-xs">
-                    <div></div>
-                    <button type="button" onclick="panImage(0, -10)" class="p-1.5 bg-white border rounded hover:bg-gray-100">▲</button>
-                    <div></div>
-                    <button type="button" onclick="panImage(-10, 0)" class="p-1.5 bg-white border rounded hover:bg-gray-100">◀</button>
-                    <button type="button" onclick="resetImageTransform()" class="p-1.5 bg-indigo-50 text-indigo-600 border border-indigo-200 rounded font-bold">⟲</button>
-                    <button type="button" onclick="panImage(10, 0)" class="p-1.5 bg-white border rounded hover:bg-gray-100">▶</button>
-                    <div></div>
-                    <button type="button" onclick="panImage(0, 10)" class="p-1.5 bg-white border rounded hover:bg-gray-100">▼</button>
-                    <div></div>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          </div>
-        </div>
-
-        <div class="space-y-3 pt-2">
-          <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider">2. Item Details</label>
-          <div class="grid grid-cols-2 gap-3">
+      // Parse JSON-LD structured data if available (common on Shopify stores like Hill House)
+      const jsonLdMatch = html.match(/<script type=["']application\/ld\+json["']>([\s\S]*?)<\/script>/gi);
+      if (jsonLdMatch) {
+        for (const tag of jsonLdMatch) {
+          try {
+            const cleanJson = tag.replace(/<script[^>]*>/i, '').replace(/<\/script>/i, '').trim();
+            const json = JSON.parse(cleanJson);
             
-            <div class="col-span-2 sm:col-span-1">
-              <label class="text-xs font-semibold text-gray-500">Category</label>
-              <select id="input-category" class="w-full p-2 border rounded-lg text-sm bg-white" onchange="handleCategoryChange()"></select>
-            </div>
-
-            <div id="custom-category-container" class="col-span-2 sm:col-span-1 hidden">
-              <label class="text-xs font-semibold text-indigo-600">New Category Name</label>
-              <input type="text" id="input-custom-category" placeholder="e.g. Scarves, Hats" class="w-full p-2 border border-indigo-300 rounded-lg text-sm bg-indigo-50">
-            </div>
-
-            <div>
-              <label class="text-xs font-semibold text-gray-500">Brand</label>
-              <input type="text" id="input-brand" placeholder="e.g. Zara" class="w-full p-2 border rounded-lg text-sm">
-            </div>
-            <div>
-              <label class="text-xs font-semibold text-gray-500">Color</label>
-              <input type="text" id="input-color" placeholder="e.g. Navy Blue" class="w-full p-2 border rounded-lg text-sm">
-            </div>
-            <div>
-              <label class="text-xs font-semibold text-gray-500">Size</label>
-              <input type="text" id="input-size" placeholder="e.g. Medium / 10" class="w-full p-2 border rounded-lg text-sm">
-            </div>
-            <div>
-              <label class="text-xs font-semibold text-gray-500">Where Bought</label>
-              <input type="text" id="input-bought" placeholder="e.g. Nordstrom" class="w-full p-2 border rounded-lg text-sm">
-            </div>
-          </div>
-        </div>
-
-        <div class="flex items-center justify-between pt-3 border-t">
-          <span id="ai-status" class="text-xs font-medium text-indigo-600"></span>
-          <button onclick="saveItem()" class="bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-indigo-700 shadow-sm">Save to Closet</button>
-        </div>
-      </div>
-
-      <div class="bg-white p-4 rounded-2xl border shadow-sm space-y-3">
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-          <h2 class="text-lg font-bold text-gray-900">Your Closet Items</h2>
-          
-          <div class="flex items-center gap-1 bg-gray-100 p-1 rounded-xl text-xs font-semibold">
-            <button onclick="setViewMode('grid-3')" id="btn-view-grid-3" class="px-2.5 py-1.5 rounded-lg bg-white shadow-xs text-indigo-600">Grid (3-4)</button>
-            <button onclick="setViewMode('grid-2')" id="btn-view-grid-2" class="px-2.5 py-1.5 rounded-lg text-gray-600">Grid (2)</button>
-            <button onclick="setViewMode('single')" id="btn-view-single" class="px-2.5 py-1.5 rounded-lg text-gray-600">1 at a Time</button>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t text-xs">
-          <div>
-            <label class="font-semibold text-gray-500 mb-1 block">Filter Category</label>
-            <select id="filter-category" onchange="renderWardrobe()" class="w-full p-1.5 border rounded-lg bg-gray-50">
-              <option value="ALL">All Categories</option>
-            </select>
-          </div>
-          <div>
-            <label class="font-semibold text-gray-500 mb-1 block">Filter Color</label>
-            <select id="filter-color" onchange="renderWardrobe()" class="w-full p-1.5 border rounded-lg bg-gray-50">
-              <option value="ALL">All Colors</option>
-            </select>
-          </div>
-          <div>
-            <label class="font-semibold text-gray-500 mb-1 block">Filter Brand</label>
-            <select id="filter-brand" onchange="renderWardrobe()" class="w-full p-1.5 border rounded-lg bg-gray-50">
-              <option value="ALL">All Brands</option>
-            </select>
-          </div>
-          <div class="flex items-end">
-            <button onclick="openManageCategoriesModal()" class="w-full py-1.5 px-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg border text-center">
-              ⚙️ Rename Categories
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div id="items-display-container"></div>
-    </section>
-
-    <section id="view-outfit" class="hidden space-y-4">
-      <div class="flex items-center justify-between">
-        <h2 class="text-lg font-bold text-gray-900">Interactive Canvas</h2>
-        <button onclick="saveOutfit()" class="bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-emerald-700">Save Outfit Idea</button>
-      </div>
-
-      <div id="canvas" class="w-full h-96 bg-white border-2 border-dashed border-gray-300 rounded-2xl canvas-grid relative overflow-hidden flex items-center justify-center">
-        <p id="canvas-empty-msg" class="text-sm text-gray-400">Tap items below to add them to your look</p>
-        <div id="canvas-items-container" class="absolute inset-0"></div>
-      </div>
-
-      <div>
-        <h3 class="text-sm font-bold text-gray-700 mb-2">Tap item to add to canvas:</h3>
-        <div id="canvas-picker" class="flex gap-3 overflow-x-auto pb-2"></div>
-      </div>
-    </section>
-
-    <section id="view-saved" class="hidden space-y-4">
-      <h2 class="text-lg font-bold text-gray-900">Saved Outfit Ideas</h2>
-      <div id="lookbook-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
-    </section>
-
-  </main>
-
-  <div id="modal-manage-categories" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl p-5 max-w-sm w-full space-y-4 shadow-xl">
-      <div class="flex justify-between items-center border-b pb-2">
-        <h3 class="font-bold text-gray-900">Rename Existing Category</h3>
-        <button onclick="closeManageCategoriesModal()" class="text-gray-400 text-lg">✕</button>
-      </div>
-      
-      <div class="space-y-3">
-        <div>
-          <label class="text-xs font-semibold text-gray-500">Select Category to Rename</label>
-          <select id="modal-select-cat" class="w-full p-2 border rounded-lg text-sm bg-white"></select>
-        </div>
-        <div>
-          <label class="text-xs font-semibold text-gray-500">New Category Name</label>
-          <input type="text" id="modal-input-new-cat-name" placeholder="Enter new name" class="w-full p-2 border rounded-lg text-sm">
-        </div>
-      </div>
-
-      <div class="flex justify-end gap-2 pt-2 border-t">
-        <button onclick="closeManageCategoriesModal()" class="px-3 py-1.5 text-xs text-gray-600">Cancel</button>
-        <button onclick="renameCategorySubmit()" class="px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-semibold">Rename & Update All</button>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    let categories = JSON.parse(localStorage.getItem('wardrobe_categories') || '["Clothing", "Jackets/Coats", "Shoes", "Necklaces", "Bangles", "Earrings", "Other"]');
-    let wardrobe = JSON.parse(localStorage.getItem('wardrobe_items') || '[]');
-    let outfits = JSON.parse(localStorage.getItem('wardrobe_outfits') || '[]');
-    
-    let activeSourceMode = 'file';
-    let currentViewMode = 'grid-3';
-    let singleViewIndex = 0;
-    let currentCanvasItems = [];
-    let activeBase64 = null;
-
-    // Image Transform State
-    let transformX = 0;
-    let transformY = 0;
-    let transformScale = 1;
-
-    function switchTab(tab) {
-      ['wardrobe', 'outfit', 'saved'].forEach(t => {
-        document.getElementById(`view-${t}`).classList.add('hidden');
-        document.getElementById(`tab-${t}`).className = 'px-3 py-1.5 rounded-lg text-sm font-semibold bg-gray-100 text-gray-700';
-      });
-      document.getElementById(`view-${tab}`).classList.remove('hidden');
-      document.getElementById(`tab-${tab}`).className = 'px-3 py-1.5 rounded-lg text-sm font-semibold bg-indigo-600 text-white';
-
-      if (tab === 'outfit') renderCanvasPicker();
-      if (tab === 'saved') renderLookbook();
-    }
-
-    function setImageSourceMode(mode) {
-      activeSourceMode = mode;
-      if (mode === 'file') {
-        document.getElementById('container-src-file').classList.remove('hidden');
-        document.getElementById('container-src-url').classList.add('hidden');
-        document.getElementById('btn-src-file').className = 'flex-1 py-2 px-3 border rounded-xl text-xs font-semibold bg-indigo-50 border-indigo-600 text-indigo-600 flex items-center justify-center gap-1.5';
-        document.getElementById('btn-src-url').className = 'flex-1 py-2 px-3 border rounded-xl text-xs font-semibold bg-gray-50 border-gray-200 text-gray-600 flex items-center justify-center gap-1.5';
-      } else {
-        document.getElementById('container-src-file').classList.add('hidden');
-        document.getElementById('container-src-url').classList.remove('hidden');
-        document.getElementById('btn-src-url').className = 'flex-1 py-2 px-3 border rounded-xl text-xs font-semibold bg-indigo-50 border-indigo-600 text-indigo-600 flex items-center justify-center gap-1.5';
-        document.getElementById('btn-src-file').className = 'flex-1 py-2 px-3 border rounded-xl text-xs font-semibold bg-gray-50 border-gray-200 text-gray-600 flex items-center justify-center gap-1.5';
-      }
-    }
-
-    async function handleFileSelect(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = async function(e) {
-        activeBase64 = e.target.result;
-        loadImageIntoEditor(activeBase64);
-        triggerAIAnalysis(activeBase64, null);
-      };
-      reader.readAsDataURL(file);
-    }
-
-    async function loadWebPageUrl() {
-      const url = document.getElementById('input-img-url').value.trim();
-      if (!url) return alert('Please enter a shop URL');
-
-      document.getElementById('ai-status').innerText = '⏳ Fetching product details from URL...';
-      try {
-        const response = await fetch('/api/scrape-url', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url })
-        });
-
-        const data = await response.json();
-        if (data.success) {
-          activeBase64 = data.base64Image;
-          loadImageIntoEditor(activeBase64);
-          triggerAIAnalysis(activeBase64, data.metadata);
-        } else {
-          document.getElementById('ai-status').innerText = '⚠️ ' + data.error;
+            const product = Array.isArray(json) ? json.find(i => i['@type'] === 'Product') : (json['@type'] === 'Product' ? json : null);
+            if (product) {
+              if (product.image) {
+                imageUrl = Array.isArray(product.image) ? product.image[0] : (product.image.url || product.image);
+              }
+              if (product.name) pageTitle = product.name;
+              if (product.brand) scrapedBrand = product.brand.name || product.brand;
+            }
+          } catch (e) {}
         }
-      } catch (err) {
-        document.getElementById('ai-status').innerText = '⚠️ Error scraping URL.';
+      }
+
+      if (imageUrl && !imageUrl.startsWith('http')) {
+        const urlObj = new URL(url);
+        imageUrl = `${urlObj.origin}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
       }
     }
 
-    function loadImageIntoEditor(src) {
-      const img = document.getElementById('image-preview');
-      img.src = src;
-      document.getElementById('editor-container').classList.remove('hidden');
-      resetImageTransform();
+    if (!imageUrl) {
+      return res.status(400).json({ success: false, error: 'Could not find a high-resolution product image on this URL.' });
     }
 
-    function updateImageTransform() {
-      transformScale = parseFloat(document.getElementById('zoom-slider').value);
-      document.getElementById('zoom-val').innerText = `${Math.round(transformScale * 100)}%`;
-      const img = document.getElementById('image-preview');
-      img.style.transform = `translate(${transformX}px, ${transformY}px) scale(${transformScale})`;
+    // Convert scraped image to Base64
+    const imgResponse = await fetch(imageUrl);
+    const imgBuffer = await imgResponse.buffer();
+    const mimeType = imgResponse.headers.get('content-type') || 'image/jpeg';
+    const base64Image = `data:${mimeType};base64,${imgBuffer.toString('base64')}`;
+
+    res.json({
+      success: true,
+      base64Image,
+      metadata: {
+        title: pageTitle,
+        brand: scrapedBrand || storeName,
+        store: storeName
+      }
+    });
+  } catch (err) {
+    console.error('Scrape Error:', err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// AI Auto-Tagging Endpoint
+app.post('/api/analyze-clothing', async (req, res) => {
+  try {
+    const { base64Image, metadata } = req.body;
+
+    if (!OPENAI_API_KEY) {
+      return res.status(500).json({ success: false, error: 'OpenAI API key missing on server.' });
     }
 
-    function panImage(dx, dy) {
-      transformX += dx;
-      transformY += dy;
-      updateImageTransform();
-    }
+    const contextPrompt = metadata 
+      ? `Product Title: "${metadata.title || ''}", Primary Brand: "${metadata.brand || ''}", Retailer Store Name: "${metadata.store || ''}".`
+      : '';
 
-    function resetImageTransform() {
-      transformX = 0;
-      transformY = 0;
-      transformScale = 1;
-      document.getElementById('zoom-slider').value = 1;
-      updateImageTransform();
-    }
-
-    async function triggerAIAnalysis(base64Data, metadata) {
-      document.getElementById('ai-status').innerText = '✨ AI analyzing item details...';
-      try {
-        const res = await fetch('/api/analyze-clothing', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ base64Image: base64Data, metadata })
-        });
-        const data = await res.json();
-        
-        if (data.success) {
-          document.getElementById('input-brand').value = data.details.brand !== 'Unknown' ? data.details.brand : (metadata ? metadata.brand : '');
-          document.getElementById('input-color').value = data.details.color || '';
-          document.getElementById('input-size').value = data.details.size !== 'Unknown' ? data.details.size : '';
-          document.getElementById('input-bought').value = data.details.whereBought !== 'Unknown' ? data.details.whereBought : (metadata ? metadata.store : '');
-          
-          if (data.details.category && categories.includes(data.details.category)) {
-            document.getElementById('input-category').value = data.details.category;
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${OPENAI_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: `Analyze this clothing or accessory image. ${contextPrompt} Extract: 
+                1. "color": Primary color name (e.g., Emerald Green, Navy Blue).
+                2. "brand": Brand name (use provided metadata brand if available, else look for logos or tags).
+                3. "size": Size (return "Unknown" if not visible).
+                4. "whereBought": Retailer name where purchased (if metadata indicates store like "${metadata?.store || ''}", MUST output "${metadata?.store || ''}").
+                5. "category": Must be strictly one of: "Clothing", "Jackets/Coats", "Shoes", "Necklaces", "Bangles", "Earrings", "Other".
+                Output strictly valid JSON with keys: "color", "brand", "size", "whereBought", "category".`
+              },
+              {
+                type: 'image_url',
+                image_url: { url: base64Image }
+              }
+            ]
           }
-          document.getElementById('ai-status').innerText = '✅ AI auto-tagged details!';
-        } else {
-          document.getElementById('ai-status').innerText = 'Ready. Fill in details manually.';
-        }
-      } catch (err) {
-        document.getElementById('ai-status').innerText = 'Ready. Fill in details manually.';
-      }
-    }
+        ],
+        response_format: { type: 'json_object' },
+        max_tokens: 250
+      })
+    });
 
-    function populateCategoriesUI() {
-      const selectForm = document.getElementById('input-category');
-      const selectFilter = document.getElementById('filter-category');
-      const selectModal = document.getElementById('modal-select-cat');
+    const data = await response.json();
+    if (data.error) throw new Error(data.error.message);
 
-      selectForm.innerHTML = categories.map(c => `<option value="${c}">${c}</option>`).join('');
-      selectFilter.innerHTML = `<option value="ALL">All Categories</option>` + categories.filter(c => c !== 'Other').map(c => `<option value="${c}">${c}</option>`).join('');
-      selectModal.innerHTML = categories.filter(c => c !== 'Other').map(c => `<option value="${c}">${c}</option>`).join('');
-      
-      handleCategoryChange();
-    }
+    const details = JSON.parse(data.choices[0].message.content);
+    res.json({ success: true, details });
+  } catch (err) {
+    console.error('AI Error:', err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
-    function handleCategoryChange() {
-      const selected = document.getElementById('input-category').value;
-      const customContainer = document.getElementById('custom-category-container');
-      if (selected === 'Other') {
-        customContainer.classList.remove('hidden');
-      } else {
-        customContainer.classList.add('hidden');
-      }
-    }
-
-    function openManageCategoriesModal() {
-      document.getElementById('modal-manage-categories').classList.remove('hidden');
-    }
-
-    function closeManageCategoriesModal() {
-      document.getElementById('modal-manage-categories').classList.add('hidden');
-    }
-
-    function renameCategorySubmit() {
-      const oldCat = document.getElementById('modal-select-cat').value;
-      const newCat = document.getElementById('modal-input-new-cat-name').value.trim();
-
-      if (!newCat) return alert('Enter a new name');
-
-      categories = categories.map(c => c === oldCat ? newCat : c);
-      localStorage.setItem('wardrobe_categories', JSON.stringify(categories));
-
-      wardrobe.forEach(item => {
-        if (item.category === oldCat) item.category = newCat;
-      });
-      localStorage.setItem('wardrobe_items', JSON.stringify(wardrobe));
-
-      document.getElementById('modal-input-new-cat-name').value = '';
-      closeManageCategoriesModal();
-      populateCategoriesUI();
-      renderWardrobe();
-    }
-
-    function saveItem() {
-      if (!activeBase64) return alert('Please upload a photo or provide a store URL first.');
-
-      let selectedCategory = document.getElementById('input-category').value;
-      
-      if (selectedCategory === 'Other') {
-        const customCat = document.getElementById('input-custom-category').value.trim();
-        if (customCat) {
-          selectedCategory = customCat;
-          if (!categories.includes(customCat)) {
-            categories.splice(categories.length - 1, 0, customCat);
-            localStorage.setItem('wardrobe_categories', JSON.stringify(categories));
-            populateCategoriesUI();
-          }
-        } else {
-          selectedCategory = 'Uncategorized';
-        }
-      }
-
-      const newItem = {
-        id: Date.now(),
-        image: activeBase64,
-        brand: document.getElementById('input-brand').value || 'Unbranded',
-        color: document.getElementById('input-color').value || 'Unspecified',
-        size: document.getElementById('input-size').value || 'N/A',
-        whereBought: document.getElementById('input-bought').value || 'N/A',
-        category: selectedCategory
-      };
-
-      wardrobe.unshift(newItem);
-      localStorage.setItem('wardrobe_items', JSON.stringify(wardrobe));
-
-      // Reset Form
-      activeBase64 = null;
-      document.getElementById('editor-container').classList.add('hidden');
-      document.getElementById('input-img-url').value = '';
-      document.getElementById('input-brand').value = '';
-      document.getElementById('input-color').value = '';
-      document.getElementById('input-size').value = '';
-      document.getElementById('input-bought').value = '';
-      document.getElementById('input-custom-category').value = '';
-      document.getElementById('ai-status').innerText = '';
-
-      updateFilterDropdowns();
-      renderWardrobe();
-    }
-
-    function updateFilterDropdowns() {
-      const colors = [...new Set(wardrobe.map(i => i.color))].filter(Boolean);
-      const brands = [...new Set(wardrobe.map(i => i.brand))].filter(Boolean);
-
-      document.getElementById('filter-color').innerHTML = `<option value="ALL">All Colors</option>` + colors.map(c => `<option value="${c}">${c}</option>`).join('');
-      document.getElementById('filter-brand').innerHTML = `<option value="ALL">All Brands</option>` + brands.map(b => `<option value="${b}">${b}</option>`).join('');
-    }
-
-    function setViewMode(mode) {
-      currentViewMode = mode;
-      ['grid-3', 'grid-2', 'single'].forEach(m => {
-        const btn = document.getElementById(`btn-view-${m}`);
-        if (m === mode) {
-          btn.className = 'px-2.5 py-1.5 rounded-lg bg-white shadow-xs text-indigo-600 font-semibold';
-        } else {
-          btn.className = 'px-2.5 py-1.5 rounded-lg text-gray-600 font-semibold';
-        }
-      });
-      renderWardrobe();
-    }
-
-    function renderWardrobe() {
-      const container = document.getElementById('items-display-container');
-      
-      const filterCat = document.getElementById('filter-category').value;
-      const filterCol = document.getElementById('filter-color').value;
-      const filterBr = document.getElementById('filter-brand').value;
-
-      const filtered = wardrobe.filter(item => {
-        const matchesCat = (filterCat === 'ALL' || item.category === filterCat);
-        const matchesCol = (filterCol === 'ALL' || item.color === filterCol);
-        const matchesBr = (filterBr === 'ALL' || item.brand === filterBr);
-        return matchesCat && matchesCol && matchesBr;
-      });
-
-      if (filtered.length === 0) {
-        container.innerHTML = `<p class="text-sm text-gray-400 text-center py-12 bg-white rounded-2xl border">No items match your filter criteria.</p>`;
-        return;
-      }
-
-      if (currentViewMode === 'single') {
-        if (singleViewIndex >= filtered.length) singleViewIndex = 0;
-        const item = filtered[singleViewIndex];
-
-        container.innerHTML = `
-          <div class="bg-white rounded-2xl border p-4 shadow-sm max-w-md mx-auto space-y-4 relative">
-            <div class="relative h-80 rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center">
-              <img src="${item.image}" class="max-w-full max-h-full object-contain">
-              <button onclick="deleteItem(${item.id})" class="absolute top-3 right-3 bg-red-600 text-white text-xs px-2.5 py-1 rounded-md shadow-sm">Delete</button>
-            </div>
-            <div class="space-y-1">
-              <div class="flex justify-between items-center">
-                <span class="text-xs font-bold bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-full">${item.category}</span>
-                <span class="text-xs font-semibold text-gray-400">Item ${singleViewIndex + 1} of ${filtered.length}</span>
-              </div>
-              <h3 class="text-lg font-bold text-gray-900">${item.brand}</h3>
-              <p class="text-sm text-gray-600">Color: <strong>${item.color}</strong> • Size: <strong>${item.size}</strong></p>
-              <p class="text-xs text-gray-400">Purchased at: ${item.whereBought}</p>
-            </div>
-            
-            <div class="flex gap-2 pt-2 border-t">
-              <button onclick="navigateSingleView(-1, ${filtered.length})" class="flex-1 py-2 bg-gray-100 rounded-xl text-xs font-semibold text-gray-700">← Previous</button>
-              <button onclick="navigateSingleView(1, ${filtered.length})" class="flex-1 py-2 bg-indigo-600 rounded-xl text-xs font-semibold text-white">Next →</button>
-            </div>
-          </div>
-        `;
-        return;
-      }
-
-      const gridClass = currentViewMode === 'grid-2' ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4';
-
-      container.innerHTML = `
-        <div class="grid ${gridClass} gap-4">
-          ${filtered.map(item => `
-            <div class="bg-white rounded-xl border p-2.5 shadow-sm space-y-2 relative group flex flex-col justify-between">
-              <div>
-                <div class="w-full h-36 rounded-lg bg-gray-50 flex items-center justify-center overflow-hidden">
-                  <img src="${item.image}" class="max-w-full max-h-full object-contain">
-                </div>
-                <div class="mt-2 space-y-0.5">
-                  <span class="text-[10px] font-bold bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full inline-block mb-1">${item.category}</span>
-                  <p class="font-bold text-sm text-gray-900 truncate">${item.brand}</p>
-                  <p class="text-xs text-gray-500">${item.color} •${item.size}</p>
-                  <p class="text-[11px] text-gray-400 truncate">Bought: ${item.whereBought}</p>
-                </div>
-              </div>
-              <button onclick="deleteItem(${item.id})" class="mt-2 w-full bg-red-50 hover:bg-red-100 text-red-600 text-xs py-1 rounded-md font-semibold">Delete</button>
-            </div>
-          `).join('')}
-        </div>
-      `;
-    }
-
-    function navigateSingleView(direction, maxLen) {
-      singleViewIndex = (singleViewIndex + direction + maxLen) % maxLen;
-      renderWardrobe();
-    }
-
-    function deleteItem(id) {
-      wardrobe = wardrobe.filter(i => i.id !== id);
-      localStorage.setItem('wardrobe_items', JSON.stringify(wardrobe));
-      updateFilterDropdowns();
-      renderWardrobe();
-    }
-
-    function renderCanvasPicker() {
-      const tray = document.getElementById('canvas-picker');
-      tray.innerHTML = wardrobe.map(item => `
-        <img src="${item.image}" onclick="addToCanvas(${item.id})" class="w-20 h-20 object-contain rounded-xl border-2 border-transparent hover:border-indigo-600 cursor-pointer flex-shrink-0 bg-white p-1">
-      `).join('');
-    }
-
-    function addToCanvas(id) {
-      const item = wardrobe.find(i => i.id === id);
-      if (!item) return;
-
-      document.getElementById('canvas-empty-msg').classList.add('hidden');
-      currentCanvasItems.push(item);
-
-      const container = document.getElementById('canvas-items-container');
-      const img = document.createElement('img');
-      img.src = item.image;
-      img.className = 'absolute w-28 h-28 object-contain rounded-xl border shadow-md cursor-move bg-white p-1';
-      img.style.left = `${Math.random() * 40 + 20}%`;
-      img.style.top = `${Math.random() * 40 + 20}%`;
-      container.appendChild(img);
-    }
-
-    function saveOutfit() {
-      if (currentCanvasItems.length === 0) return alert('Add at least one item to the canvas.');
-
-      const outfit = {
-        id: Date.now(),
-        date: new Date().toLocaleDateString(),
-        items: [...currentCanvasItems]
-      };
-
-      outfits.unshift(outfit);
-      localStorage.setItem('wardrobe_outfits', JSON.stringify(outfits));
-
-      currentCanvasItems = [];
-      document.getElementById('canvas-items-container').innerHTML = '';
-      document.getElementById('canvas-empty-msg').classList.remove('hidden');
-
-      alert('Outfit idea saved to Lookbook!');
-      switchTab('saved');
-    }
-
-    function renderLookbook() {
-      const grid = document.getElementById('lookbook-grid');
-      if (outfits.length === 0) {
-        grid.innerHTML = `<p class="col-span-full text-sm text-gray-400 text-center py-8">No saved outfits yet.</p>`;
-        return;
-      }
-
-      grid.innerHTML = outfits.map(o => `
-        <div class="bg-white p-4 rounded-xl border shadow-sm space-y-3">
-          <div class="flex justify-between items-center">
-            <span class="text-xs font-bold text-gray-400">Created: ${o.date}</span>
-            <span class="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full font-semibold">${o.items.length} Items</span>
-          </div>
-          <div class="flex gap-2 overflow-x-auto pb-1">
-            ${o.items.map(i => `<img src="${i.image}" class="w-16 h-16 object-contain rounded-lg border p-1 bg-gray-50">`).join('')}
-          </div>
-        </div>
-      `).join('');
-    }
-
-    populateCategoriesUI();
-    updateFilterDropdowns();
-    renderWardrobe();
-  </script>
-</body>
-</html>
+app.listen(PORT, () => {
+  console.log(`Wardrobe Server running at http://localhost:${PORT}`);
+});
