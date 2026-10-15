@@ -14,7 +14,6 @@
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans min-h-screen pb-16">
   
-  <!-- App Header Navigation -->
   <header class="bg-white border-b sticky top-0 z-40 px-4 py-3 flex items-center justify-between shadow-sm">
     <h1 class="text-xl font-bold text-indigo-600 flex items-center gap-2">
       👔 My Wardrobe
@@ -28,14 +27,11 @@
 
   <main class="max-w-4xl mx-auto p-4">
     
-    <!-- SECTION 1: CLOSET & ADD ITEM -->
     <section id="view-wardrobe" class="space-y-6">
       
-      <!-- ADD NEW ITEM CARD -->
       <div class="bg-white p-5 rounded-2xl border shadow-sm space-y-4">
         <h2 class="text-lg font-bold text-gray-900">Add New Item</h2>
         
-        <!-- Image Input Source Selector -->
         <div class="space-y-3">
           <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider">1. Choose Photo Source</label>
           <div class="flex gap-2">
@@ -43,17 +39,16 @@
               📷 Camera / Gallery
             </button>
             <button type="button" onclick="setImageSourceMode('url')" id="btn-src-url" class="flex-1 py-2 px-3 border rounded-xl text-xs font-semibold bg-gray-50 border-gray-200 text-gray-600 flex items-center justify-center gap-1.5">
-              🌐 Web Image URL
+              🌐 Web Product Link / Image URL
             </button>
           </div>
 
           <!-- Mode A: File Upload / Camera -->
           <div id="container-src-file" class="block">
-            <label class="w-full h-48 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 overflow-hidden relative bg-gray-50">
-              <img id="image-preview" class="hidden absolute inset-0 w-full h-full object-cover">
-              <div id="upload-placeholder" class="text-center p-4">
-                <span class="text-3xl">📷</span>
-                <p class="text-xs text-gray-500 mt-1 font-medium">Tap to upload from photo gallery or take a picture</p>
+            <label class="w-full h-24 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 overflow-hidden relative bg-gray-50">
+              <div class="text-center p-4">
+                <span class="text-2xl">📷</span>
+                <p class="text-xs text-gray-500 font-medium">Tap to upload from photo gallery or take a picture</p>
               </div>
               <input type="file" id="file-input" accept="image/*" class="hidden" onchange="handleFileSelect(event)">
             </label>
@@ -62,29 +57,60 @@
           <!-- Mode B: URL Input -->
           <div id="container-src-url" class="hidden space-y-2">
             <div class="flex gap-2">
-              <input type="url" id="input-img-url" placeholder="Paste image link (https://...)" class="flex-1 p-2 border rounded-xl text-sm">
-              <button type="button" onclick="loadWebImageUrl()" class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-semibold">Load & Scan</button>
+              <input type="url" id="input-img-url" placeholder="Paste store product URL (e.g., hillhousehome.com/...)" class="flex-1 p-2.5 border rounded-xl text-sm">
+              <button type="button" onclick="loadWebPageUrl()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-xs font-semibold">Import & Scan</button>
             </div>
-            <div id="url-preview-container" class="hidden relative h-40 rounded-xl overflow-hidden border">
-              <img id="url-image-preview" class="w-full h-full object-cover">
+          </div>
+
+          <!-- INTERACTIVE IMAGE PREVIEW & ADJUST CANVAS -->
+          <div id="editor-container" class="hidden space-y-2 pt-2 border-t">
+            <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Image Preview & Adjustment</label>
+            <div class="flex flex-col sm:flex-row gap-4 items-center">
+              
+              <!-- Square Auto-Fit Box -->
+              <div class="w-64 h-64 border-2 border-indigo-200 rounded-2xl bg-gray-100 overflow-hidden relative flex items-center justify-center shadow-inner">
+                <img id="image-preview" class="max-w-full max-h-full object-contain transition-transform duration-75" style="transform: translate(0px, 0px) scale(1);">
+              </div>
+
+              <!-- Drag / Pan / Scale Controls -->
+              <div class="flex-1 space-y-3 w-full bg-gray-50 p-3 rounded-xl border">
+                <div class="space-y-1">
+                  <div class="flex justify-between text-xs font-semibold text-gray-600">
+                    <span>Zoom Level</span>
+                    <span id="zoom-val">100%</span>
+                  </div>
+                  <input type="range" id="zoom-slider" min="0.5" max="2.5" step="0.05" value="1" oninput="updateImageTransform()" class="w-full accent-indigo-600">
+                </div>
+
+                <div class="space-y-1">
+                  <span class="text-xs font-semibold text-gray-600 block">Position Shift</span>
+                  <div class="grid grid-cols-3 gap-1 max-w-[140px] mx-auto text-xs">
+                    <div></div>
+                    <button type="button" onclick="panImage(0, -10)" class="p-1.5 bg-white border rounded hover:bg-gray-100">▲</button>
+                    <div></div>
+                    <button type="button" onclick="panImage(-10, 0)" class="p-1.5 bg-white border rounded hover:bg-gray-100">◀</button>
+                    <button type="button" onclick="resetImageTransform()" class="p-1.5 bg-indigo-50 text-indigo-600 border border-indigo-200 rounded font-bold">⟲</button>
+                    <button type="button" onclick="panImage(10, 0)" class="p-1.5 bg-white border rounded hover:bg-gray-100">▶</button>
+                    <div></div>
+                    <button type="button" onclick="panImage(0, 10)" class="p-1.5 bg-white border rounded hover:bg-gray-100">▼</button>
+                    <div></div>
+                  </div>
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
 
-        <!-- Details Form -->
         <div class="space-y-3 pt-2">
           <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider">2. Item Details</label>
           <div class="grid grid-cols-2 gap-3">
             
-            <!-- Category Selector -->
             <div class="col-span-2 sm:col-span-1">
               <label class="text-xs font-semibold text-gray-500">Category</label>
-              <select id="input-category" class="w-full p-2 border rounded-lg text-sm bg-white" onchange="handleCategoryChange()">
-                <!-- Categories rendered dynamically -->
-              </select>
+              <select id="input-category" class="w-full p-2 border rounded-lg text-sm bg-white" onchange="handleCategoryChange()"></select>
             </div>
 
-            <!-- Custom Category Input (shown when "Other" is selected) -->
             <div id="custom-category-container" class="col-span-2 sm:col-span-1 hidden">
               <label class="text-xs font-semibold text-indigo-600">New Category Name</label>
               <input type="text" id="input-custom-category" placeholder="e.g. Scarves, Hats" class="w-full p-2 border border-indigo-300 rounded-lg text-sm bg-indigo-50">
@@ -115,12 +141,10 @@
         </div>
       </div>
 
-      <!-- INVENTORY TOOLBAR: FILTERS & VIEW OPTIONS -->
       <div class="bg-white p-4 rounded-2xl border shadow-sm space-y-3">
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <h2 class="text-lg font-bold text-gray-900">Your Closet Items</h2>
           
-          <!-- View Switcher -->
           <div class="flex items-center gap-1 bg-gray-100 p-1 rounded-xl text-xs font-semibold">
             <button onclick="setViewMode('grid-3')" id="btn-view-grid-3" class="px-2.5 py-1.5 rounded-lg bg-white shadow-xs text-indigo-600">Grid (3-4)</button>
             <button onclick="setViewMode('grid-2')" id="btn-view-grid-2" class="px-2.5 py-1.5 rounded-lg text-gray-600">Grid (2)</button>
@@ -128,7 +152,6 @@
           </div>
         </div>
 
-        <!-- Filters Grid -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t text-xs">
           <div>
             <label class="font-semibold text-gray-500 mb-1 block">Filter Category</label>
@@ -156,11 +179,9 @@
         </div>
       </div>
 
-      <!-- Inventory Display Area -->
       <div id="items-display-container"></div>
     </section>
 
-    <!-- SECTION 2: OUTFIT CANVAS -->
     <section id="view-outfit" class="hidden space-y-4">
       <div class="flex items-center justify-between">
         <h2 class="text-lg font-bold text-gray-900">Interactive Canvas</h2>
@@ -178,7 +199,6 @@
       </div>
     </section>
 
-    <!-- SECTION 3: SAVED LOOKBOOK -->
     <section id="view-saved" class="hidden space-y-4">
       <h2 class="text-lg font-bold text-gray-900">Saved Outfit Ideas</h2>
       <div id="lookbook-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
@@ -186,7 +206,6 @@
 
   </main>
 
-  <!-- MANAGE CATEGORIES MODAL -->
   <div id="modal-manage-categories" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl p-5 max-w-sm w-full space-y-4 shadow-xl">
       <div class="flex justify-between items-center border-b pb-2">
@@ -213,18 +232,21 @@
   </div>
 
   <script>
-    // State Management
     let categories = JSON.parse(localStorage.getItem('wardrobe_categories') || '["Clothing", "Jackets/Coats", "Shoes", "Necklaces", "Bangles", "Earrings", "Other"]');
     let wardrobe = JSON.parse(localStorage.getItem('wardrobe_items') || '[]');
     let outfits = JSON.parse(localStorage.getItem('wardrobe_outfits') || '[]');
     
-    let activeSourceMode = 'file'; // 'file' or 'url'
-    let currentViewMode = 'grid-3'; // 'grid-3', 'grid-2', or 'single'
+    let activeSourceMode = 'file';
+    let currentViewMode = 'grid-3';
     let singleViewIndex = 0;
     let currentCanvasItems = [];
     let activeBase64 = null;
 
-    // --- TAB SWITCHING ---
+    // Image Transform State
+    let transformX = 0;
+    let transformY = 0;
+    let transformScale = 1;
+
     function switchTab(tab) {
       ['wardrobe', 'outfit', 'saved'].forEach(t => {
         document.getElementById(`view-${t}`).classList.add('hidden');
@@ -237,7 +259,6 @@
       if (tab === 'saved') renderLookbook();
     }
 
-    // --- IMAGE SOURCE SWITCHER ---
     function setImageSourceMode(mode) {
       activeSourceMode = mode;
       if (mode === 'file') {
@@ -253,7 +274,6 @@
       }
     }
 
-    // --- FILE SELECTION & AI ANALYSIS ---
     async function handleFileSelect(event) {
       const file = event.target.files[0];
       if (!file) return;
@@ -261,67 +281,93 @@
       const reader = new FileReader();
       reader.onload = async function(e) {
         activeBase64 = e.target.result;
-        document.getElementById('image-preview').src = activeBase64;
-        document.getElementById('image-preview').classList.remove('hidden');
-        document.getElementById('upload-placeholder').classList.add('hidden');
-        triggerAIAnalysis(activeBase64);
+        loadImageIntoEditor(activeBase64);
+        triggerAIAnalysis(activeBase64, null);
       };
       reader.readAsDataURL(file);
     }
 
-    // --- WEB IMAGE URL SELECTION & AI ANALYSIS ---
-    async function loadWebImageUrl() {
+    async function loadWebPageUrl() {
       const url = document.getElementById('input-img-url').value.trim();
-      if (!url) return alert('Please enter a valid image URL');
+      if (!url) return alert('Please enter a shop URL');
 
-      document.getElementById('ai-status').innerText = '⏳ Loading web image...';
+      document.getElementById('ai-status').innerText = '⏳ Fetching product details from URL...';
       try {
-        const response = await fetch(url);
-        const blob = await response.blob();
-        const reader = new FileReader();
-        reader.onloadend = function() {
-          activeBase64 = reader.result;
-          document.getElementById('url-image-preview').src = activeBase64;
-          document.getElementById('url-preview-container').classList.remove('hidden');
-          triggerAIAnalysis(activeBase64);
-        };
-        reader.readAsDataURL(blob);
+        const response = await fetch('/api/scrape-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+          activeBase64 = data.base64Image;
+          loadImageIntoEditor(activeBase64);
+          triggerAIAnalysis(activeBase64, data.metadata);
+        } else {
+          document.getElementById('ai-status').innerText = '⚠️ ' + data.error;
+        }
       } catch (err) {
-        document.getElementById('ai-status').innerText = '⚠️ Image URL restricted by CORS. Enter details manually.';
-        activeBase64 = url; // Fallback to raw URL
+        document.getElementById('ai-status').innerText = '⚠️ Error scraping URL.';
       }
     }
 
-    async function triggerAIAnalysis(base64Data) {
-      document.getElementById('ai-status').innerText = '✨ AI analyzing photo details...';
+    function loadImageIntoEditor(src) {
+      const img = document.getElementById('image-preview');
+      img.src = src;
+      document.getElementById('editor-container').classList.remove('hidden');
+      resetImageTransform();
+    }
+
+    function updateImageTransform() {
+      transformScale = parseFloat(document.getElementById('zoom-slider').value);
+      document.getElementById('zoom-val').innerText = `${Math.round(transformScale * 100)}%`;
+      const img = document.getElementById('image-preview');
+      img.style.transform = `translate(${transformX}px, ${transformY}px) scale(${transformScale})`;
+    }
+
+    function panImage(dx, dy) {
+      transformX += dx;
+      transformY += dy;
+      updateImageTransform();
+    }
+
+    function resetImageTransform() {
+      transformX = 0;
+      transformY = 0;
+      transformScale = 1;
+      document.getElementById('zoom-slider').value = 1;
+      updateImageTransform();
+    }
+
+    async function triggerAIAnalysis(base64Data, metadata) {
+      document.getElementById('ai-status').innerText = '✨ AI analyzing item details...';
       try {
         const res = await fetch('/api/analyze-clothing', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ base64Image: base64Data })
+          body: JSON.stringify({ base64Image: base64Data, metadata })
         });
         const data = await res.json();
         
         if (data.success) {
-          document.getElementById('input-brand').value = data.details.brand !== 'Unknown' ? data.details.brand : '';
+          document.getElementById('input-brand').value = data.details.brand !== 'Unknown' ? data.details.brand : (metadata ? metadata.brand : '');
           document.getElementById('input-color').value = data.details.color || '';
           document.getElementById('input-size').value = data.details.size !== 'Unknown' ? data.details.size : '';
-          document.getElementById('input-bought').value = data.details.whereBought !== 'Unknown' ? data.details.whereBought : '';
+          document.getElementById('input-bought').value = data.details.whereBought !== 'Unknown' ? data.details.whereBought : (metadata ? metadata.store : '');
           
-          // Match AI category if present
           if (data.details.category && categories.includes(data.details.category)) {
             document.getElementById('input-category').value = data.details.category;
           }
-          document.getElementById('ai-status').innerText = '✅ AI auto-tagged! Edit if needed.';
+          document.getElementById('ai-status').innerText = '✅ AI auto-tagged details!';
         } else {
-          document.getElementById('ai-status').innerText = 'Ready. Enter details manually.';
+          document.getElementById('ai-status').innerText = 'Ready. Fill in details manually.';
         }
       } catch (err) {
-        document.getElementById('ai-status').innerText = 'Ready. Enter details manually.';
+        document.getElementById('ai-status').innerText = 'Ready. Fill in details manually.';
       }
     }
 
-    // --- CATEGORY MANAGERS ---
     function populateCategoriesUI() {
       const selectForm = document.getElementById('input-category');
       const selectFilter = document.getElementById('filter-category');
@@ -358,11 +404,9 @@
 
       if (!newCat) return alert('Enter a new name');
 
-      // Update category array
       categories = categories.map(c => c === oldCat ? newCat : c);
       localStorage.setItem('wardrobe_categories', JSON.stringify(categories));
 
-      // Update wardrobe items with old category
       wardrobe.forEach(item => {
         if (item.category === oldCat) item.category = newCat;
       });
@@ -374,19 +418,17 @@
       renderWardrobe();
     }
 
-    // --- SAVE CLOSET ITEM ---
     function saveItem() {
-      if (!activeBase64) return alert('Please upload a photo or provide an image URL first.');
+      if (!activeBase64) return alert('Please upload a photo or provide a store URL first.');
 
       let selectedCategory = document.getElementById('input-category').value;
       
-      // If "Other" chosen, add custom category to dynamic list
       if (selectedCategory === 'Other') {
         const customCat = document.getElementById('input-custom-category').value.trim();
         if (customCat) {
           selectedCategory = customCat;
           if (!categories.includes(customCat)) {
-            categories.splice(categories.length - 1, 0, customCat); // Insert before "Other"
+            categories.splice(categories.length - 1, 0, customCat);
             localStorage.setItem('wardrobe_categories', JSON.stringify(categories));
             populateCategoriesUI();
           }
@@ -408,11 +450,9 @@
       wardrobe.unshift(newItem);
       localStorage.setItem('wardrobe_items', JSON.stringify(wardrobe));
 
-      // Reset Form Inputs
+      // Reset Form
       activeBase64 = null;
-      document.getElementById('image-preview').classList.add('hidden');
-      document.getElementById('upload-placeholder').classList.remove('hidden');
-      document.getElementById('url-preview-container').classList.add('hidden');
+      document.getElementById('editor-container').classList.add('hidden');
       document.getElementById('input-img-url').value = '';
       document.getElementById('input-brand').value = '';
       document.getElementById('input-color').value = '';
@@ -425,7 +465,6 @@
       renderWardrobe();
     }
 
-    // --- FILTER DROPDOWNS POPULATION ---
     function updateFilterDropdowns() {
       const colors = [...new Set(wardrobe.map(i => i.color))].filter(Boolean);
       const brands = [...new Set(wardrobe.map(i => i.brand))].filter(Boolean);
@@ -434,7 +473,6 @@
       document.getElementById('filter-brand').innerHTML = `<option value="ALL">All Brands</option>` + brands.map(b => `<option value="${b}">${b}</option>`).join('');
     }
 
-    // --- VIEW MODE SWITCHER ---
     function setViewMode(mode) {
       currentViewMode = mode;
       ['grid-3', 'grid-2', 'single'].forEach(m => {
@@ -448,7 +486,6 @@
       renderWardrobe();
     }
 
-    // --- RENDER WARDROBE ---
     function renderWardrobe() {
       const container = document.getElementById('items-display-container');
       
@@ -456,7 +493,6 @@
       const filterCol = document.getElementById('filter-color').value;
       const filterBr = document.getElementById('filter-brand').value;
 
-      // Filter Logic
       const filtered = wardrobe.filter(item => {
         const matchesCat = (filterCat === 'ALL' || item.category === filterCat);
         const matchesCol = (filterCol === 'ALL' || item.color === filterCol);
@@ -469,15 +505,14 @@
         return;
       }
 
-      // 1. Single Item View
       if (currentViewMode === 'single') {
         if (singleViewIndex >= filtered.length) singleViewIndex = 0;
         const item = filtered[singleViewIndex];
 
         container.innerHTML = `
           <div class="bg-white rounded-2xl border p-4 shadow-sm max-w-md mx-auto space-y-4 relative">
-            <div class="relative h-80 rounded-xl overflow-hidden bg-gray-100">
-              <img src="${item.image}" class="w-full h-full object-contain">
+            <div class="relative h-80 rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center">
+              <img src="${item.image}" class="max-w-full max-h-full object-contain">
               <button onclick="deleteItem(${item.id})" class="absolute top-3 right-3 bg-red-600 text-white text-xs px-2.5 py-1 rounded-md shadow-sm">Delete</button>
             </div>
             <div class="space-y-1">
@@ -490,7 +525,6 @@
               <p class="text-xs text-gray-400">Purchased at: ${item.whereBought}</p>
             </div>
             
-            <!-- Navigation buttons -->
             <div class="flex gap-2 pt-2 border-t">
               <button onclick="navigateSingleView(-1, ${filtered.length})" class="flex-1 py-2 bg-gray-100 rounded-xl text-xs font-semibold text-gray-700">← Previous</button>
               <button onclick="navigateSingleView(1, ${filtered.length})" class="flex-1 py-2 bg-indigo-600 rounded-xl text-xs font-semibold text-white">Next →</button>
@@ -500,7 +534,6 @@
         return;
       }
 
-      // 2. Grid Views (grid-2 or grid-3)
       const gridClass = currentViewMode === 'grid-2' ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4';
 
       container.innerHTML = `
@@ -508,7 +541,9 @@
           ${filtered.map(item => `
             <div class="bg-white rounded-xl border p-2.5 shadow-sm space-y-2 relative group flex flex-col justify-between">
               <div>
-                <img src="${item.image}" class="w-full h-36 object-cover rounded-lg bg-gray-50">
+                <div class="w-full h-36 rounded-lg bg-gray-50 flex items-center justify-center overflow-hidden">
+                  <img src="${item.image}" class="max-w-full max-h-full object-contain">
+                </div>
                 <div class="mt-2 space-y-0.5">
                   <span class="text-[10px] font-bold bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full inline-block mb-1">${item.category}</span>
                   <p class="font-bold text-sm text-gray-900 truncate">${item.brand}</p>
@@ -535,11 +570,10 @@
       renderWardrobe();
     }
 
-    // --- OUTFIT CANVAS ---
     function renderCanvasPicker() {
       const tray = document.getElementById('canvas-picker');
       tray.innerHTML = wardrobe.map(item => `
-        <img src="${item.image}" onclick="addToCanvas(${item.id})" class="w-20 h-20 object-cover rounded-xl border-2 border-transparent hover:border-indigo-600 cursor-pointer flex-shrink-0 bg-white">
+        <img src="${item.image}" onclick="addToCanvas(${item.id})" class="w-20 h-20 object-contain rounded-xl border-2 border-transparent hover:border-indigo-600 cursor-pointer flex-shrink-0 bg-white p-1">
       `).join('');
     }
 
@@ -553,7 +587,7 @@
       const container = document.getElementById('canvas-items-container');
       const img = document.createElement('img');
       img.src = item.image;
-      img.className = 'absolute w-28 h-28 object-cover rounded-xl border shadow-md cursor-move';
+      img.className = 'absolute w-28 h-28 object-contain rounded-xl border shadow-md cursor-move bg-white p-1';
       img.style.left = `${Math.random() * 40 + 20}%`;
       img.style.top = `${Math.random() * 40 + 20}%`;
       container.appendChild(img);
@@ -593,13 +627,12 @@
             <span class="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full font-semibold">${o.items.length} Items</span>
           </div>
           <div class="flex gap-2 overflow-x-auto pb-1">
-            ${o.items.map(i => `<img src="${i.image}" class="w-16 h-16 object-cover rounded-lg border">`).join('')}
+            ${o.items.map(i => `<img src="${i.image}" class="w-16 h-16 object-contain rounded-lg border p-1 bg-gray-50">`).join('')}
           </div>
         </div>
       `).join('');
     }
 
-    // Initial Setup
     populateCategoriesUI();
     updateFilterDropdowns();
     renderWardrobe();
