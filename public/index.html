@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Digital Wardrobe & Outfit Planner</title>
   
-  <!-- Pink Flamingo Favicon -->
   <link rel="icon" href="https://fav.farm/%F0%9F%A6%9C" />
 
   <script src="https://cdn.tailwindcss.com"></script>
@@ -15,11 +14,11 @@
       background-image: radial-gradient(circle, #e5e7eb 1px, transparent 1px);
     }
     .corner-handle {
-      width: 12px;
-      height: 12px;
+      width: 14px;
+      height: 14px;
       background-color: #4f46e5;
       border: 2px solid #ffffff;
-      border-radius: 2px;
+      border-radius: 3px;
       position: absolute;
       z-index: 20;
     }
@@ -56,7 +55,6 @@
             </button>
           </div>
 
-          <!-- Mode A: File Upload / Camera -->
           <div id="container-src-file" class="block">
             <label class="w-full h-20 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 bg-gray-50">
               <div class="text-center p-2">
@@ -67,7 +65,6 @@
             </label>
           </div>
 
-          <!-- Mode B: URL Input -->
           <div id="container-src-url" class="hidden space-y-2">
             <div class="flex gap-2">
               <input type="url" id="input-img-url" placeholder="Paste product link (e.g. https://www.hillhousehome.com/products/...)" class="flex-1 p-2.5 border rounded-xl text-sm">
@@ -75,28 +72,25 @@
             </div>
           </div>
 
-          <!-- INTERACTIVE DRAG & DIAGONAL CORNER SCALE EDITOR -->
+          <!-- DRAG & DIAGONAL CORNER SCALE EDITOR -->
           <div id="editor-container" class="hidden space-y-2 pt-2 border-t">
             <div class="flex justify-between items-center">
               <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Image Preview & Adjustments</label>
               <button type="button" onclick="resetImageTransform()" class="text-xs font-semibold text-indigo-600 hover:underline">⟲ Reset Align</button>
             </div>
             
-            <p class="text-[11px] text-gray-400">💡 <strong>Click & drag image</strong> to move around. <strong>Drag any corner handle</strong> diagonally to zoom in or out.</p>
+            <p class="text-[11px] text-gray-400">💡 <strong>Click & drag image</strong> to reposition. <strong>Drag any blue corner handle</strong> diagonally outward to enlarge, or inward to shrink.</p>
 
             <div class="flex justify-center">
-              <!-- Square Workspace -->
               <div id="crop-viewport" class="w-72 h-72 border-2 border-indigo-200 rounded-2xl bg-gray-100 relative overflow-hidden flex items-center justify-center shadow-inner cursor-grab active:cursor-grabbing">
                 
-                <!-- Transformable Image -->
                 <div id="transform-wrapper" class="absolute flex items-center justify-center w-full h-full pointer-events-none" style="transform: translate(0px, 0px) scale(1);">
                   <img id="image-preview" class="max-w-full max-h-full object-contain pointer-events-none select-none">
                   
-                  <!-- 4 Corner Handles for Diagonal Resizing -->
-                  <div id="handle-tl" class="corner-handle -top-1.5 -left-1.5 cursor-nwse-resize pointer-events-auto"></div>
-                  <div id="handle-tr" class="corner-handle -top-1.5 -right-1.5 cursor-nesw-resize pointer-events-auto"></div>
-                  <div id="handle-bl" class="corner-handle -bottom-1.5 -left-1.5 cursor-nesw-resize pointer-events-auto"></div>
-                  <div id="handle-br" class="corner-handle -bottom-1.5 -right-1.5 cursor-nwse-resize pointer-events-auto"></div>
+                  <div id="handle-tl" data-corner="tl" class="corner-handle -top-2 -left-2 cursor-nwse-resize pointer-events-auto"></div>
+                  <div id="handle-tr" data-corner="tr" class="corner-handle -top-2 -right-2 cursor-nesw-resize pointer-events-auto"></div>
+                  <div id="handle-bl" data-corner="bl" class="corner-handle -bottom-2 -left-2 cursor-nesw-resize pointer-events-auto"></div>
+                  <div id="handle-br" data-corner="br" class="corner-handle -bottom-2 -right-2 cursor-nwse-resize pointer-events-auto"></div>
                 </div>
 
               </div>
@@ -124,7 +118,7 @@
             </div>
             <div>
               <label class="text-xs font-semibold text-gray-500">Color</label>
-              <input type="text" id="input-color" placeholder="e.g. Emerald Trellis" class="w-full p-2 border rounded-lg text-sm">
+              <input type="text" id="input-color" placeholder="e.g. Burgundy / Emerald" class="w-full p-2 border rounded-lg text-sm">
             </div>
             <div>
               <label class="text-xs font-semibold text-gray-500">Size</label>
@@ -208,6 +202,46 @@
 
   </main>
 
+  <!-- EDIT ITEM DETAILS MODAL -->
+  <div id="modal-edit-item" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-5 max-w-sm w-full space-y-4 shadow-xl">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="font-bold text-gray-900">Edit Item Details</h3>
+        <button onclick="closeEditItemModal()" class="text-gray-400 text-lg">✕</button>
+      </div>
+      
+      <input type="hidden" id="edit-item-id">
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="font-semibold text-gray-500">Category</label>
+          <select id="edit-item-category" class="w-full p-2 border rounded-lg bg-white mt-1"></select>
+        </div>
+        <div>
+          <label class="font-semibold text-gray-500">Brand</label>
+          <input type="text" id="edit-item-brand" class="w-full p-2 border rounded-lg mt-1">
+        </div>
+        <div>
+          <label class="font-semibold text-gray-500">Color</label>
+          <input type="text" id="edit-item-color" class="w-full p-2 border rounded-lg mt-1">
+        </div>
+        <div>
+          <label class="font-semibold text-gray-500">Size</label>
+          <input type="text" id="edit-item-size" class="w-full p-2 border rounded-lg mt-1">
+        </div>
+        <div>
+          <label class="font-semibold text-gray-500">Where Bought</label>
+          <input type="text" id="edit-item-bought" class="w-full p-2 border rounded-lg mt-1">
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2 border-t">
+        <button onclick="closeEditItemModal()" class="px-3 py-1.5 text-xs text-gray-600">Cancel</button>
+        <button onclick="saveEditItemSubmit()" class="px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-semibold">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RENAME CATEGORIES MODAL -->
   <div id="modal-manage-categories" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl p-5 max-w-sm w-full space-y-4 shadow-xl">
       <div class="flex justify-between items-center border-b pb-2">
@@ -250,7 +284,7 @@
 
     let isDraggingImage = false;
     let isResizingCorner = false;
-    let startX, startY, startScale, startXPos, startYPos;
+    let startX, startY, startScale, startXPos, startYPos, initialDist;
 
     function switchTab(tab) {
       ['wardrobe', 'outfit', 'saved'].forEach(t => {
@@ -296,7 +330,7 @@
       const url = document.getElementById('input-img-url').value.trim();
       if (!url) return alert('Please enter a product URL');
 
-      document.getElementById('ai-status').innerText = '⏳ Fetching product image & store data...';
+      document.getElementById('ai-status').innerText = '⏳ Fetching product details from store...';
       try {
         const response = await fetch('/api/scrape-url', {
           method: 'POST',
@@ -337,6 +371,7 @@
       updateImageTransform();
     }
 
+    // CORNER SCALING (OUTWARD = ENLARGE, INWARD = SHRINK)
     function initInteractiveControls() {
       const viewport = document.getElementById('crop-viewport');
       const handles = document.querySelectorAll('.corner-handle');
@@ -354,9 +389,13 @@
       handles.forEach(handle => {
         handle.onmousedown = function(e) {
           isResizingCorner = true;
-          startX = e.clientX;
-          startY = e.clientY;
+          const rect = viewport.getBoundingClientRect();
+          const centerX = rect.left + rect.width / 2;
+          const centerY = rect.top + rect.height / 2;
+          
+          initialDist = Math.hypot(e.clientX - centerX, e.clientY - centerY);
           startScale = transformScale;
+          
           e.stopPropagation();
           e.preventDefault();
         };
@@ -370,10 +409,14 @@
           transformY = startYPos + dy;
           updateImageTransform();
         } else if (isResizingCorner) {
-          const dx = e.clientX - startX;
-          const dy = e.clientY - startY;
-          const diagonalDist = Math.sqrt(dx * dx + dy * dy) * (dx > 0 || dy > 0 ? 1 : -1);
-          transformScale = Math.max(0.3, Math.min(3.5, startScale + (diagonalDist / 150)));
+          const rect = viewport.getBoundingClientRect();
+          const centerX = rect.left + rect.width / 2;
+          const centerY = rect.top + rect.height / 2;
+          
+          const currentDist = Math.hypot(e.clientX - centerX, e.clientY - centerY);
+          const scaleFactor = currentDist / (initialDist || 1);
+          
+          transformScale = Math.max(0.2, Math.min(4.0, startScale * scaleFactor));
           updateImageTransform();
         }
       };
@@ -385,7 +428,7 @@
     }
 
     async function triggerAIAnalysis(base64Data, metadata) {
-      document.getElementById('ai-status').innerText = '✨ AI analyzing product metadata & visual tags...';
+      document.getElementById('ai-status').innerText = '✨ AI analyzing photo details...';
       try {
         const res = await fetch('/api/analyze-clothing', {
           method: 'POST',
@@ -396,7 +439,7 @@
         
         if (data.success) {
           document.getElementById('input-brand').value = data.details.brand !== 'Unknown' ? data.details.brand : (metadata ? metadata.brand : '');
-          document.getElementById('input-color').value = data.details.color || '';
+          document.getElementById('input-color').value = data.details.color !== 'Unknown' ? data.details.color : '';
           document.getElementById('input-size').value = data.details.size !== 'Unknown' ? data.details.size : '';
           document.getElementById('input-bought').value = (data.details.whereBought && data.details.whereBought !== 'Unknown') ? data.details.whereBought : (metadata ? metadata.store : '');
           
@@ -416,10 +459,12 @@
       const selectForm = document.getElementById('input-category');
       const selectFilter = document.getElementById('filter-category');
       const selectModal = document.getElementById('modal-select-cat');
+      const selectEdit = document.getElementById('edit-item-category');
 
       selectForm.innerHTML = categories.map(c => `<option value="${c}">${c}</option>`).join('');
       selectFilter.innerHTML = `<option value="ALL">All Categories</option>` + categories.filter(c => c !== 'Other').map(c => `<option value="${c}">${c}</option>`).join('');
       selectModal.innerHTML = categories.filter(c => c !== 'Other').map(c => `<option value="${c}">${c}</option>`).join('');
+      selectEdit.innerHTML = categories.filter(c => c !== 'Other').map(c => `<option value="${c}">${c}</option>`).join('');
       
       handleCategoryChange();
     }
@@ -432,6 +477,42 @@
       } else {
         customContainer.classList.add('hidden');
       }
+    }
+
+    // EDIT ITEM MODAL LOGIC
+    function openEditItemModal(id) {
+      const item = wardrobe.find(i => i.id === id);
+      if (!item) return;
+
+      document.getElementById('edit-item-id').value = item.id;
+      document.getElementById('edit-item-category').value = item.category;
+      document.getElementById('edit-item-brand').value = item.brand;
+      document.getElementById('edit-item-color').value = item.color;
+      document.getElementById('edit-item-size').value = item.size;
+      document.getElementById('edit-item-bought').value = item.whereBought;
+
+      document.getElementById('modal-edit-item').classList.remove('hidden');
+    }
+
+    function closeEditItemModal() {
+      document.getElementById('modal-edit-item').classList.add('hidden');
+    }
+
+    function saveEditItemSubmit() {
+      const id = parseInt(document.getElementById('edit-item-id').value);
+      const item = wardrobe.find(i => i.id === id);
+      if (!item) return;
+
+      item.category = document.getElementById('edit-item-category').value;
+      item.brand = document.getElementById('edit-item-brand').value || 'Unbranded';
+      item.color = document.getElementById('edit-item-color').value || 'Unspecified';
+      item.size = document.getElementById('edit-item-size').value || 'N/A';
+      item.whereBought = document.getElementById('edit-item-bought').value || 'N/A';
+
+      localStorage.setItem('wardrobe_items', JSON.stringify(wardrobe));
+      closeEditItemModal();
+      updateFilterDropdowns();
+      renderWardrobe();
     }
 
     function openManageCategoriesModal() {
@@ -556,7 +637,10 @@
           <div class="bg-white rounded-2xl border p-4 shadow-sm max-w-md mx-auto space-y-4 relative">
             <div class="relative h-80 rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center">
               <img src="${item.image}" class="max-w-full max-h-full object-contain">
-              <button onclick="deleteItem(${item.id})" class="absolute top-3 right-3 bg-red-600 text-white text-xs px-2.5 py-1 rounded-md shadow-sm">Delete</button>
+              <div class="absolute top-3 right-3 flex gap-1">
+                <button onclick="openEditItemModal(${item.id})" class="bg-indigo-600 text-white text-xs px-2.5 py-1 rounded-md shadow-sm">Edit ✏️</button>
+                <button onclick="deleteItem(${item.id})" class="bg-red-600 text-white text-xs px-2.5 py-1 rounded-md shadow-sm">Delete</button>
+              </div>
             </div>
             <div class="space-y-1">
               <div class="flex justify-between items-center">
@@ -594,7 +678,10 @@
                   <p class="text-[11px] text-gray-400 truncate">Bought: ${item.whereBought}</p>
                 </div>
               </div>
-              <button onclick="deleteItem(${item.id})" class="mt-2 w-full bg-red-50 hover:bg-red-100 text-red-600 text-xs py-1 rounded-md font-semibold">Delete</button>
+              <div class="flex gap-1 mt-2">
+                <button onclick="openEditItemModal(${item.id})" class="flex-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-xs py-1 rounded-md font-semibold">Edit ✏️</button>
+                <button onclick="deleteItem(${item.id})" class="flex-1 bg-red-50 hover:bg-red-100 text-red-600 text-xs py-1 rounded-md font-semibold">Delete</button>
+              </div>
             </div>
           `).join('')}
         </div>
