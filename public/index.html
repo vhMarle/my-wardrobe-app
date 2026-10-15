@@ -64,26 +64,33 @@
             <label class="w-full h-20 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 bg-gray-50">
               <div class="text-center p-2">
                 <span class="text-xl">📷</span>
-                <p class="text-xs text-gray-500 font-medium">Tap to upload from photo gallery or take a picture</p>
+                <p class="text-xs text-gray-500 font-medium">Tap to upload photos from camera or gallery</p>
               </div>
-              <input type="file" id="file-input" accept="image/*" class="hidden" onchange="handleFileSelect(event)">
+              <input type="file" id="file-input" accept="image/*" multiple class="hidden" onchange="handleFileSelect(event)">
             </label>
           </div>
 
           <div id="container-src-url" class="hidden space-y-2">
             <div class="flex gap-2">
-              <input type="url" id="input-img-url" placeholder="Paste product link (e.g. https://www.hillhousehome.com/products/...)" class="flex-1 p-2.5 border rounded-xl text-sm">
+              <input type="url" id="input-img-url" placeholder="Paste product URL (e.g. https://www.hillhousehome.com/products/...)" class="flex-1 p-2.5 border rounded-xl text-sm">
               <button type="button" onclick="loadWebPageUrl()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-xs font-semibold shadow-sm">Load & Scan</button>
             </div>
           </div>
 
           <!-- SIDE-BY-SIDE EDITOR & ITEM DETAILS -->
           <div id="editor-container" class="hidden space-y-4 pt-4 border-t">
-            <p class="text-[11px] text-gray-400">💡 <strong>Click & drag image</strong> to reposition. <strong>Drag any blue corner handle</strong> diagonally outward to enlarge, or inward to shrink.</p>
+            
+            <!-- Gallery Views Selector -->
+            <div id="scraped-views-container" class="hidden space-y-1">
+              <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider block">Available Item Angles / Perspectives</label>
+              <div id="scraped-views-list" class="flex gap-2 overflow-x-auto pb-1"></div>
+            </div>
+
+            <p class="text-[11px] text-gray-400">💡 <strong>Click & drag image</strong> to reposition. <strong>Drag any blue corner handle</strong> diagonally to zoom.</p>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
               
-              <!-- LEFT COLUMN: Image Box -->
+              <!-- LEFT: Image Canvas -->
               <div class="space-y-2">
                 <div class="flex justify-between items-center">
                   <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Image Adjustments</label>
@@ -103,7 +110,7 @@
                 </div>
               </div>
 
-              <!-- RIGHT COLUMN: Item Details -->
+              <!-- RIGHT: Details -->
               <div class="space-y-3">
                 <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider block">Item Details</label>
                 <div class="space-y-2.5">
@@ -194,49 +201,35 @@
       <div class="flex items-center justify-between">
         <div>
           <h2 class="text-lg font-bold text-gray-900">Virtual Stylist Canvas</h2>
-          <p class="text-xs text-gray-500">Tap wardrobe items below to place onto the mannequin. Click an item to drag, resize, or layer!</p>
+          <p class="text-xs text-gray-500">Tap items below onto model. Click item to move or resize using blue handles.</p>
         </div>
         <button onclick="saveOutfit()" class="bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-emerald-700 shadow-sm">Save Outfit Idea</button>
       </div>
 
-      <!-- CANVAS STYLING AREA WITH MODEL -->
       <div class="relative flex flex-col md:flex-row gap-4">
         
-        <!-- Interactive Model Canvas -->
         <div id="canvas-wrapper" class="flex-1 h-[500px] bg-white border-2 border-indigo-200 rounded-2xl relative overflow-hidden flex items-center justify-center shadow-inner canvas-grid">
           
-          <!-- Model Silhouette Vector Graphic -->
           <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
             <svg class="h-full max-h-[460px] text-gray-700 fill-current" viewBox="0 0 100 300">
-              <!-- Head & Hair -->
               <circle cx="50" cy="35" r="16" />
-              <!-- Neck -->
               <path d="M46 50 L54 50 L55 60 L45 60 Z" />
-              <!-- Shoulders & Torso -->
               <path d="M28 65 Q50 60 72 65 L66 140 Q50 145 34 140 Z" />
-              <!-- Hips & Legs -->
               <path d="M34 140 Q50 145 66 140 L62 280 L52 280 L50 190 L48 280 L38 280 Z" />
-              <!-- Arms -->
               <path d="M28 65 L20 135 L25 137 L32 75 Z" />
               <path d="M72 65 L80 135 L75 137 L68 75 Z" />
             </svg>
           </div>
 
-          <p id="canvas-empty-msg" class="text-xs text-gray-400 absolute bottom-4 bg-white/80 px-3 py-1 rounded-full border">Tap wardrobe items from tray below to dress the model</p>
+          <p id="canvas-empty-msg" class="text-xs text-gray-400 absolute bottom-4 bg-white/80 px-3 py-1 rounded-full border">Tap items from tray below to dress model</p>
           
           <div id="canvas-items-container" class="absolute inset-0"></div>
         </div>
 
-        <!-- Selected Item Controls Sidebar -->
         <div id="canvas-controls" class="w-full md:w-48 bg-white p-3 rounded-2xl border space-y-3 hidden flex-shrink-0">
           <h3 class="text-xs font-bold text-gray-700 uppercase tracking-wider border-b pb-1">Selected Garment</h3>
           
           <div class="space-y-2">
-            <div>
-              <label class="text-[11px] font-semibold text-gray-500">Scale / Size</label>
-              <input type="range" id="item-scale-slider" min="0.4" max="2.5" step="0.05" value="1" oninput="updateSelectedItemScale()" class="w-full accent-indigo-600">
-            </div>
-
             <div class="pt-1 space-y-1">
               <label class="text-[11px] font-semibold text-gray-500 block">Layering Order</label>
               <div class="flex gap-1">
@@ -251,7 +244,6 @@
 
       </div>
 
-      <!-- Wardrobe Selection Tray -->
       <div class="bg-white p-3 rounded-2xl border space-y-2">
         <h3 class="text-xs font-bold text-gray-700 uppercase tracking-wider">Tap item to place onto model:</h3>
         <div id="canvas-picker" class="flex gap-3 overflow-x-auto pb-1"></div>
@@ -266,11 +258,40 @@
 
   </main>
 
-  <!-- EDIT ITEM DETAILS MODAL -->
+  <!-- CLOSET CARD ITEM DETAIL POPUP GALLERY MODAL -->
+  <div id="modal-view-item" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-5 max-w-lg w-full space-y-4 shadow-xl">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 id="view-modal-title" class="font-bold text-gray-900">Item Details</h3>
+        <button onclick="closeViewItemModal()" class="text-gray-400 text-xl">✕</button>
+      </div>
+
+      <div class="space-y-3">
+        <!-- Main Image -->
+        <div class="w-full h-72 bg-gray-100 rounded-xl overflow-hidden flex items-center justify-center">
+          <img id="view-modal-main-img" class="max-w-full max-h-full object-contain">
+        </div>
+
+        <!-- Thumbnails gallery (back, side, etc.) -->
+        <div id="view-modal-thumbs" class="flex gap-2 overflow-x-auto pb-1"></div>
+
+        <!-- Item Info -->
+        <div class="grid grid-cols-2 gap-2 text-xs pt-2 border-t">
+          <div><span class="text-gray-400 block">Category:</span><strong id="view-modal-cat" class="text-gray-800"></strong></div>
+          <div><span class="text-gray-400 block">Brand:</span><strong id="view-modal-brand" class="text-gray-800"></strong></div>
+          <div><span class="text-gray-400 block">Color:</span><strong id="view-modal-color" class="text-gray-800"></strong></div>
+          <div><span class="text-gray-400 block">Size:</span><strong id="view-modal-size" class="text-gray-800"></strong></div>
+          <div class="col-span-2"><span class="text-gray-400 block">Where Bought:</span><strong id="view-modal-bought" class="text-gray-800"></strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EDIT ITEM MODAL -->
   <div id="modal-edit-item" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl p-5 max-w-sm w-full space-y-4 shadow-xl">
       <div class="flex justify-between items-center border-b pb-2">
-        <h3 class="font-bold text-gray-900">Edit Item Details</h3>
+        <h3 class="font-bold text-gray-900">Edit Details</h3>
         <button onclick="closeEditItemModal()" class="text-gray-400 text-lg">✕</button>
       </div>
       
@@ -309,7 +330,7 @@
   <div id="modal-manage-categories" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl p-5 max-w-sm w-full space-y-4 shadow-xl">
       <div class="flex justify-between items-center border-b pb-2">
-        <h3 class="font-bold text-gray-900">Rename Existing Category</h3>
+        <h3 class="font-bold text-gray-900">Rename Category</h3>
         <button onclick="closeManageCategoriesModal()" class="text-gray-400 text-lg">✕</button>
       </div>
       
@@ -326,7 +347,7 @@
 
       <div class="flex justify-end gap-2 pt-2 border-t">
         <button onclick="closeManageCategoriesModal()" class="px-3 py-1.5 text-xs text-gray-600">Cancel</button>
-        <button onclick="renameCategorySubmit()" class="px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-semibold">Rename & Update All</button>
+        <button onclick="renameCategorySubmit()" class="px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-semibold">Rename All</button>
       </div>
     </div>
   </div>
@@ -340,8 +361,9 @@
     let currentViewMode = 'grid-3';
     let singleViewIndex = 0;
     let activeBase64 = null;
+    let currentScrapedImages = [];
 
-    // Image Editor Transform Parameters
+    // Editor Transform Parameters
     let transformX = 0;
     let transformY = 0;
     let transformScale = 1;
@@ -350,10 +372,11 @@
     let isResizingCorner = false;
     let startX, startY, startScale, startXPos, startYPos, initialDist;
 
-    // Interactive Outfit Canvas State
+    // Canvas State
     let canvasItems = [];
     let selectedCanvasItemId = null;
     let isDraggingCanvasItem = false;
+    let isResizingCanvasCorner = false;
     let dragOffsetX = 0, dragOffsetY = 0;
 
     function switchTab(tab) {
@@ -384,23 +407,30 @@
     }
 
     async function handleFileSelect(event) {
-      const file = event.target.files[0];
-      if (!file) return;
+      const files = event.target.files;
+      if (!files || files.length === 0) return;
 
-      const reader = new FileReader();
-      reader.onload = async function(e) {
-        activeBase64 = e.target.result;
-        loadImageIntoEditor(activeBase64);
-        triggerAIAnalysis(activeBase64, null);
-      };
-      reader.readAsDataURL(file);
+      currentScrapedImages = [];
+      for (let i = 0; i < files.length; i++) {
+        const b64 = await new Promise(resolve => {
+          const reader = new FileReader();
+          reader.onload = e => resolve(e.target.result);
+          reader.readAsDataURL(files[i]);
+        });
+        currentScrapedImages.push(b64);
+      }
+
+      activeBase64 = currentScrapedImages[0];
+      renderScrapedViewThumbnails();
+      loadImageIntoEditor(activeBase64);
+      triggerAIAnalysis(activeBase64, null);
     }
 
     async function loadWebPageUrl() {
       const url = document.getElementById('input-img-url').value.trim();
       if (!url) return alert('Please enter a product URL');
 
-      document.getElementById('ai-status').innerText = '⏳ Fetching product details from store...';
+      document.getElementById('ai-status').innerText = '⏳ Fetching all product images & details...';
       try {
         const response = await fetch('/api/scrape-url', {
           method: 'POST',
@@ -410,7 +440,9 @@
 
         const data = await response.json();
         if (data.success) {
-          activeBase64 = data.base64Image;
+          currentScrapedImages = data.base64Images;
+          activeBase64 = currentScrapedImages[0];
+          renderScrapedViewThumbnails();
           loadImageIntoEditor(activeBase64);
           triggerAIAnalysis(activeBase64, data.metadata);
         } else {
@@ -419,6 +451,25 @@
       } catch (err) {
         document.getElementById('ai-status').innerText = '⚠️ Error loading URL.';
       }
+    }
+
+    function renderScrapedViewThumbnails() {
+      const container = document.getElementById('scraped-views-container');
+      const list = document.getElementById('scraped-views-list');
+      if (currentScrapedImages.length <= 1) {
+        container.classList.add('hidden');
+        return;
+      }
+      container.classList.remove('hidden');
+      list.innerHTML = currentScrapedImages.map((img, index) => `
+        <img src="${img}" onclick="selectActiveImageAngle(${index})" class="w-14 h-14 object-contain rounded-lg border-2 ${img === activeBase64 ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200 bg-gray-50'} cursor-pointer p-0.5">
+      `).join('');
+    }
+
+    function selectActiveImageAngle(index) {
+      activeBase64 = currentScrapedImages[index];
+      renderScrapedViewThumbnails();
+      loadImageIntoEditor(activeBase64);
     }
 
     function loadImageIntoEditor(src) {
@@ -443,7 +494,7 @@
 
     function initInteractiveControls() {
       const viewport = document.getElementById('crop-viewport');
-      const handles = document.querySelectorAll('.corner-handle');
+      const handles = document.querySelectorAll('#crop-viewport .corner-handle');
 
       viewport.onmousedown = function(e) {
         if (e.target.classList.contains('corner-handle')) return;
@@ -548,7 +599,37 @@
       }
     }
 
-    function openEditItemModal(id) {
+    // POPUP GALLERY MODAL
+    function openViewItemModal(id) {
+      const item = wardrobe.find(i => i.id === id);
+      if (!item) return;
+
+      document.getElementById('view-modal-title').innerText = `${item.brand} (${item.category})`;
+      document.getElementById('view-modal-main-img').src = item.image;
+      document.getElementById('view-modal-cat').innerText = item.category;
+      document.getElementById('view-modal-brand').innerText = item.brand;
+      document.getElementById('view-modal-color').innerText = item.color;
+      document.getElementById('view-modal-size').innerText = item.size;
+      document.getElementById('view-modal-bought').innerText = item.whereBought;
+
+      const thumbsContainer = document.getElementById('view-modal-thumbs');
+      if (item.gallery && item.gallery.length > 1) {
+        thumbsContainer.innerHTML = item.gallery.map(img => `
+          <img src="${img}" onclick="document.getElementById('view-modal-main-img').src='${img}'" class="w-14 h-14 object-contain rounded-lg border cursor-pointer bg-gray-50 p-0.5">
+        `).join('');
+      } else {
+        thumbsContainer.innerHTML = '';
+      }
+
+      document.getElementById('modal-view-item').classList.remove('hidden');
+    }
+
+    function closeViewItemModal() {
+      document.getElementById('modal-view-item').classList.add('hidden');
+    }
+
+    function openEditItemModal(id, e) {
+      if (e) e.stopPropagation();
       const item = wardrobe.find(i => i.id === id);
       if (!item) return;
 
@@ -633,6 +714,7 @@
       const newItem = {
         id: Date.now(),
         image: activeBase64,
+        gallery: currentScrapedImages.length > 0 ? [...currentScrapedImages] : [activeBase64],
         brand: document.getElementById('input-brand').value || 'Unbranded',
         color: document.getElementById('input-color').value || 'Unspecified',
         size: document.getElementById('input-size').value || 'N/A',
@@ -644,7 +726,9 @@
       localStorage.setItem('wardrobe_items', JSON.stringify(wardrobe));
 
       activeBase64 = null;
+      currentScrapedImages = [];
       document.getElementById('editor-container').classList.add('hidden');
+      document.getElementById('scraped-views-container').classList.add('hidden');
       document.getElementById('input-img-url').value = '';
       document.getElementById('input-brand').value = '';
       document.getElementById('input-color').value = '';
@@ -703,11 +787,11 @@
 
         container.innerHTML = `
           <div class="bg-white rounded-2xl border p-4 shadow-sm max-w-md mx-auto space-y-4 relative">
-            <div class="relative h-80 rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center">
+            <div onclick="openViewItemModal(${item.id})" class="relative h-80 rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center cursor-pointer">
               <img src="${item.image}" class="max-w-full max-h-full object-contain">
               <div class="absolute top-3 right-3 flex gap-1">
-                <button onclick="openEditItemModal(${item.id})" class="bg-indigo-600 text-white text-xs px-2.5 py-1 rounded-md shadow-sm">Edit ✏️</button>
-                <button onclick="deleteItem(${item.id})" class="bg-red-600 text-white text-xs px-2.5 py-1 rounded-md shadow-sm">Delete</button>
+                <button onclick="openEditItemModal(${item.id}, event)" class="bg-yellow-400 hover:bg-yellow-500 text-gray-900 p-1.5 rounded-lg text-xs shadow-sm">✏️</button>
+                <button onclick="deleteItem(${item.id}, event)" class="bg-red-500 hover:bg-red-600 text-white p-1.5 rounded-lg text-xs shadow-sm">🗑️</button>
               </div>
             </div>
             <div class="space-y-1">
@@ -734,7 +818,7 @@
       container.innerHTML = `
         <div class="grid ${gridClass} gap-4">
           ${filtered.map(item => `
-            <div class="bg-white rounded-xl border p-2.5 shadow-sm space-y-2 relative group flex flex-col justify-between">
+            <div onclick="openViewItemModal(${item.id})" class="bg-white rounded-xl border p-2.5 shadow-sm space-y-2 relative group flex flex-col justify-between cursor-pointer hover:border-indigo-300">
               <div>
                 <div class="w-full h-36 rounded-lg bg-gray-50 flex items-center justify-center overflow-hidden">
                   <img src="${item.image}" class="max-w-full max-h-full object-contain">
@@ -746,9 +830,9 @@
                   <p class="text-[11px] text-gray-400 truncate">Bought: ${item.whereBought}</p>
                 </div>
               </div>
-              <div class="flex gap-1 mt-2">
-                <button onclick="openEditItemModal(${item.id})" class="flex-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-xs py-1 rounded-md font-semibold">Edit ✏️</button>
-                <button onclick="deleteItem(${item.id})" class="flex-1 bg-red-50 hover:bg-red-100 text-red-600 text-xs py-1 rounded-md font-semibold">Delete</button>
+              <div class="flex justify-end gap-1 mt-2 pt-1 border-t">
+                <button onclick="openEditItemModal(${item.id}, event)" class="bg-yellow-100 hover:bg-yellow-200 text-yellow-800 text-xs px-2 py-1 rounded-md font-bold">✏️</button>
+                <button onclick="deleteItem(${item.id}, event)" class="bg-red-100 hover:bg-red-200 text-red-600 text-xs px-2 py-1 rounded-md font-bold">🗑️</button>
               </div>
             </div>
           `).join('')}
@@ -761,14 +845,15 @@
       renderWardrobe();
     }
 
-    function deleteItem(id) {
+    function deleteItem(id, e) {
+      if (e) e.stopPropagation();
       wardrobe = wardrobe.filter(i => i.id !== id);
       localStorage.setItem('wardrobe_items', JSON.stringify(wardrobe));
       updateFilterDropdowns();
       renderWardrobe();
     }
 
-    // --- INTERACTIVE OUTFIT CANVAS & MODEL DRESSING LOGIC ---
+    // CANVAS WITH CORNER HANDLES FOR STYLING
     function renderCanvasPicker() {
       const tray = document.getElementById('canvas-picker');
       tray.innerHTML = wardrobe.map(item => `
@@ -806,17 +891,31 @@
       canvasItems.forEach(item => {
         const div = document.createElement('div');
         div.id = `canvas-item-${item.canvasItemId}`;
-        div.className = `absolute cursor-grab active:cursor-grabbing p-1 rounded-xl transition-shadow ${selectedCanvasItemId === item.canvasItemId ? 'outfit-item-selected' : ''}`;
+        div.className = `absolute cursor-grab active:cursor-grabbing p-1 rounded-xl flex items-center justify-center ${selectedCanvasItemId === item.canvasItemId ? 'outfit-item-selected' : ''}`;
         div.style.left = `${item.x}px`;
         div.style.top = `${item.y}px`;
         div.style.zIndex = item.zIndex;
 
         const img = document.createElement('img');
         img.src = item.image;
-        img.className = 'w-32 h-32 object-contain pointer-events-none';
+        img.className = 'w-32 h-32 object-contain pointer-events-none select-none';
         img.style.transform = `scale(${item.scale})`;
 
         div.appendChild(img);
+
+        if (selectedCanvasItemId === item.canvasItemId) {
+          const handle = document.createElement('div');
+          handle.className = 'corner-handle -bottom-1 -right-1 cursor-nwse-resize pointer-events-auto';
+          handle.onmousedown = function(e) {
+            isResizingCanvasCorner = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            startScale = item.scale;
+            e.stopPropagation();
+            e.preventDefault();
+          };
+          div.appendChild(handle);
+        }
 
         div.onmousedown = function(e) {
           selectCanvasItem(item.canvasItemId);
@@ -836,39 +935,34 @@
         if (item) {
           item.x = e.clientX - dragOffsetX;
           item.y = e.clientY - dragOffsetY;
-          
           const el = document.getElementById(`canvas-item-${item.canvasItemId}`);
           if (el) {
             el.style.left = `${item.x}px`;
             el.style.top = `${item.y}px`;
           }
         }
+      } else if (isResizingCanvasCorner && selectedCanvasItemId) {
+        const item = canvasItems.find(i => i.canvasItemId === selectedCanvasItemId);
+        if (item) {
+          const dx = e.clientX - startX;
+          const dy = e.clientY - startY;
+          const diag = Math.sqrt(dx * dx + dy * dy) * (dx > 0 || dy > 0 ? 1 : -1);
+          item.scale = Math.max(0.3, Math.min(3.5, startScale + (diag / 120)));
+          renderCanvasItems();
+        }
       }
     });
 
     window.addEventListener('mouseup', function() {
       isDraggingCanvasItem = false;
+      isResizingCanvasCorner = false;
     });
 
     function selectCanvasItem(canvasItemId) {
       selectedCanvasItemId = canvasItemId;
       const controls = document.getElementById('canvas-controls');
       controls.classList.remove('hidden');
-
-      const item = canvasItems.find(i => i.canvasItemId === canvasItemId);
-      if (item) {
-        document.getElementById('item-scale-slider').value = item.scale;
-      }
       renderCanvasItems();
-    }
-
-    function updateSelectedItemScale() {
-      if (!selectedCanvasItemId) return;
-      const item = canvasItems.find(i => i.canvasItemId === selectedCanvasItemId);
-      if (item) {
-        item.scale = parseFloat(document.getElementById('item-scale-slider').value);
-        renderCanvasItems();
-      }
     }
 
     function changeSelectedZIndex(delta) {
