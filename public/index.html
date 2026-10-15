@@ -14,6 +14,7 @@
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans min-h-screen pb-16">
   
+  <!-- App Header Navigation -->
   <header class="bg-white border-b sticky top-0 z-40 px-4 py-3 flex items-center justify-between shadow-sm">
     <h1 class="text-xl font-bold text-indigo-600 flex items-center gap-2">
       👔 My Wardrobe
@@ -26,21 +27,69 @@
   </header>
 
   <main class="max-w-4xl mx-auto p-4">
+    
+    <!-- SECTION 1: CLOSET & ADD ITEM -->
     <section id="view-wardrobe" class="space-y-6">
+      
+      <!-- ADD NEW ITEM CARD -->
       <div class="bg-white p-5 rounded-2xl border shadow-sm space-y-4">
-        <h2 class="text-lg font-bold text-gray-900">Add New Clothing Item</h2>
+        <h2 class="text-lg font-bold text-gray-900">Add New Item</h2>
         
-        <div class="flex flex-col md:flex-row gap-4 items-center">
-          <label class="w-full md:w-48 h-48 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 overflow-hidden relative bg-gray-50">
-            <img id="image-preview" class="hidden absolute inset-0 w-full h-full object-cover">
-            <div id="upload-placeholder" class="text-center p-4">
-              <span class="text-3xl">📷</span>
-              <p class="text-xs text-gray-500 mt-1">Tap to upload / take photo</p>
-            </div>
-            <input type="file" id="file-input" accept="image/*" class="hidden" onchange="handleFileSelect(event)">
-          </label>
+        <!-- Image Input Source Selector -->
+        <div class="space-y-3">
+          <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider">1. Choose Photo Source</label>
+          <div class="flex gap-2">
+            <button type="button" onclick="setImageSourceMode('file')" id="btn-src-file" class="flex-1 py-2 px-3 border rounded-xl text-xs font-semibold bg-indigo-50 border-indigo-600 text-indigo-600 flex items-center justify-center gap-1.5">
+              📷 Camera / Gallery
+            </button>
+            <button type="button" onclick="setImageSourceMode('url')" id="btn-src-url" class="flex-1 py-2 px-3 border rounded-xl text-xs font-semibold bg-gray-50 border-gray-200 text-gray-600 flex items-center justify-center gap-1.5">
+              🌐 Web Image URL
+            </button>
+          </div>
 
-          <div class="flex-1 grid grid-cols-2 gap-3 w-full">
+          <!-- Mode A: File Upload / Camera -->
+          <div id="container-src-file" class="block">
+            <label class="w-full h-48 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 overflow-hidden relative bg-gray-50">
+              <img id="image-preview" class="hidden absolute inset-0 w-full h-full object-cover">
+              <div id="upload-placeholder" class="text-center p-4">
+                <span class="text-3xl">📷</span>
+                <p class="text-xs text-gray-500 mt-1 font-medium">Tap to upload from photo gallery or take a picture</p>
+              </div>
+              <input type="file" id="file-input" accept="image/*" class="hidden" onchange="handleFileSelect(event)">
+            </label>
+          </div>
+
+          <!-- Mode B: URL Input -->
+          <div id="container-src-url" class="hidden space-y-2">
+            <div class="flex gap-2">
+              <input type="url" id="input-img-url" placeholder="Paste image link (https://...)" class="flex-1 p-2 border rounded-xl text-sm">
+              <button type="button" onclick="loadWebImageUrl()" class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-semibold">Load & Scan</button>
+            </div>
+            <div id="url-preview-container" class="hidden relative h-40 rounded-xl overflow-hidden border">
+              <img id="url-image-preview" class="w-full h-full object-cover">
+            </div>
+          </div>
+        </div>
+
+        <!-- Details Form -->
+        <div class="space-y-3 pt-2">
+          <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider">2. Item Details</label>
+          <div class="grid grid-cols-2 gap-3">
+            
+            <!-- Category Selector -->
+            <div class="col-span-2 sm:col-span-1">
+              <label class="text-xs font-semibold text-gray-500">Category</label>
+              <select id="input-category" class="w-full p-2 border rounded-lg text-sm bg-white" onchange="handleCategoryChange()">
+                <!-- Categories rendered dynamically -->
+              </select>
+            </div>
+
+            <!-- Custom Category Input (shown when "Other" is selected) -->
+            <div id="custom-category-container" class="col-span-2 sm:col-span-1 hidden">
+              <label class="text-xs font-semibold text-indigo-600">New Category Name</label>
+              <input type="text" id="input-custom-category" placeholder="e.g. Scarves, Hats" class="w-full p-2 border border-indigo-300 rounded-lg text-sm bg-indigo-50">
+            </div>
+
             <div>
               <label class="text-xs font-semibold text-gray-500">Brand</label>
               <input type="text" id="input-brand" placeholder="e.g. Zara" class="w-full p-2 border rounded-lg text-sm">
@@ -57,31 +106,61 @@
               <label class="text-xs font-semibold text-gray-500">Where Bought</label>
               <input type="text" id="input-bought" placeholder="e.g. Nordstrom" class="w-full p-2 border rounded-lg text-sm">
             </div>
-            <div class="col-span-2">
-              <label class="text-xs font-semibold text-gray-500">Category</label>
-              <select id="input-category" class="w-full p-2 border rounded-lg text-sm">
-                <option value="Tops">Tops</option>
-                <option value="Bottoms">Bottoms</option>
-                <option value="Outerwear">Outerwear</option>
-                <option value="Shoes">Shoes</option>
-                <option value="Accessories">Accessories</option>
-              </select>
-            </div>
           </div>
         </div>
 
-        <div class="flex items-center justify-between pt-2 border-t">
+        <div class="flex items-center justify-between pt-3 border-t">
           <span id="ai-status" class="text-xs font-medium text-indigo-600"></span>
-          <button onclick="saveItem()" class="bg-indigo-600 text-white px-5 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-700">Save Item</button>
+          <button onclick="saveItem()" class="bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-indigo-700 shadow-sm">Save to Closet</button>
         </div>
       </div>
 
-      <div>
-        <h2 class="text-lg font-bold text-gray-900 mb-3">Your Closet Items</h2>
-        <div id="items-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"></div>
+      <!-- INVENTORY TOOLBAR: FILTERS & VIEW OPTIONS -->
+      <div class="bg-white p-4 rounded-2xl border shadow-sm space-y-3">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <h2 class="text-lg font-bold text-gray-900">Your Closet Items</h2>
+          
+          <!-- View Switcher -->
+          <div class="flex items-center gap-1 bg-gray-100 p-1 rounded-xl text-xs font-semibold">
+            <button onclick="setViewMode('grid-3')" id="btn-view-grid-3" class="px-2.5 py-1.5 rounded-lg bg-white shadow-xs text-indigo-600">Grid (3-4)</button>
+            <button onclick="setViewMode('grid-2')" id="btn-view-grid-2" class="px-2.5 py-1.5 rounded-lg text-gray-600">Grid (2)</button>
+            <button onclick="setViewMode('single')" id="btn-view-single" class="px-2.5 py-1.5 rounded-lg text-gray-600">1 at a Time</button>
+          </div>
+        </div>
+
+        <!-- Filters Grid -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t text-xs">
+          <div>
+            <label class="font-semibold text-gray-500 mb-1 block">Filter Category</label>
+            <select id="filter-category" onchange="renderWardrobe()" class="w-full p-1.5 border rounded-lg bg-gray-50">
+              <option value="ALL">All Categories</option>
+            </select>
+          </div>
+          <div>
+            <label class="font-semibold text-gray-500 mb-1 block">Filter Color</label>
+            <select id="filter-color" onchange="renderWardrobe()" class="w-full p-1.5 border rounded-lg bg-gray-50">
+              <option value="ALL">All Colors</option>
+            </select>
+          </div>
+          <div>
+            <label class="font-semibold text-gray-500 mb-1 block">Filter Brand</label>
+            <select id="filter-brand" onchange="renderWardrobe()" class="w-full p-1.5 border rounded-lg bg-gray-50">
+              <option value="ALL">All Brands</option>
+            </select>
+          </div>
+          <div class="flex items-end">
+            <button onclick="openManageCategoriesModal()" class="w-full py-1.5 px-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg border text-center">
+              ⚙️ Rename Categories
+            </button>
+          </div>
+        </div>
       </div>
+
+      <!-- Inventory Display Area -->
+      <div id="items-display-container"></div>
     </section>
 
+    <!-- SECTION 2: OUTFIT CANVAS -->
     <section id="view-outfit" class="hidden space-y-4">
       <div class="flex items-center justify-between">
         <h2 class="text-lg font-bold text-gray-900">Interactive Canvas</h2>
@@ -99,18 +178,53 @@
       </div>
     </section>
 
+    <!-- SECTION 3: SAVED LOOKBOOK -->
     <section id="view-saved" class="hidden space-y-4">
       <h2 class="text-lg font-bold text-gray-900">Saved Outfit Ideas</h2>
       <div id="lookbook-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
     </section>
+
   </main>
 
+  <!-- MANAGE CATEGORIES MODAL -->
+  <div id="modal-manage-categories" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-5 max-w-sm w-full space-y-4 shadow-xl">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="font-bold text-gray-900">Rename Existing Category</h3>
+        <button onclick="closeManageCategoriesModal()" class="text-gray-400 text-lg">✕</button>
+      </div>
+      
+      <div class="space-y-3">
+        <div>
+          <label class="text-xs font-semibold text-gray-500">Select Category to Rename</label>
+          <select id="modal-select-cat" class="w-full p-2 border rounded-lg text-sm bg-white"></select>
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-gray-500">New Category Name</label>
+          <input type="text" id="modal-input-new-cat-name" placeholder="Enter new name" class="w-full p-2 border rounded-lg text-sm">
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2 border-t">
+        <button onclick="closeManageCategoriesModal()" class="px-3 py-1.5 text-xs text-gray-600">Cancel</button>
+        <button onclick="renameCategorySubmit()" class="px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-semibold">Rename & Update All</button>
+      </div>
+    </div>
+  </div>
+
   <script>
+    // State Management
+    let categories = JSON.parse(localStorage.getItem('wardrobe_categories') || '["Clothing", "Jackets/Coats", "Shoes", "Necklaces", "Bangles", "Earrings", "Other"]');
     let wardrobe = JSON.parse(localStorage.getItem('wardrobe_items') || '[]');
     let outfits = JSON.parse(localStorage.getItem('wardrobe_outfits') || '[]');
+    
+    let activeSourceMode = 'file'; // 'file' or 'url'
+    let currentViewMode = 'grid-3'; // 'grid-3', 'grid-2', or 'single'
+    let singleViewIndex = 0;
     let currentCanvasItems = [];
     let activeBase64 = null;
 
+    // --- TAB SWITCHING ---
     function switchTab(tab) {
       ['wardrobe', 'outfit', 'saved'].forEach(t => {
         document.getElementById(`view-${t}`).classList.add('hidden');
@@ -123,6 +237,23 @@
       if (tab === 'saved') renderLookbook();
     }
 
+    // --- IMAGE SOURCE SWITCHER ---
+    function setImageSourceMode(mode) {
+      activeSourceMode = mode;
+      if (mode === 'file') {
+        document.getElementById('container-src-file').classList.remove('hidden');
+        document.getElementById('container-src-url').classList.add('hidden');
+        document.getElementById('btn-src-file').className = 'flex-1 py-2 px-3 border rounded-xl text-xs font-semibold bg-indigo-50 border-indigo-600 text-indigo-600 flex items-center justify-center gap-1.5';
+        document.getElementById('btn-src-url').className = 'flex-1 py-2 px-3 border rounded-xl text-xs font-semibold bg-gray-50 border-gray-200 text-gray-600 flex items-center justify-center gap-1.5';
+      } else {
+        document.getElementById('container-src-file').classList.add('hidden');
+        document.getElementById('container-src-url').classList.remove('hidden');
+        document.getElementById('btn-src-url').className = 'flex-1 py-2 px-3 border rounded-xl text-xs font-semibold bg-indigo-50 border-indigo-600 text-indigo-600 flex items-center justify-center gap-1.5';
+        document.getElementById('btn-src-file').className = 'flex-1 py-2 px-3 border rounded-xl text-xs font-semibold bg-gray-50 border-gray-200 text-gray-600 flex items-center justify-center gap-1.5';
+      }
+    }
+
+    // --- FILE SELECTION & AI ANALYSIS ---
     async function handleFileSelect(event) {
       const file = event.target.files[0];
       if (!file) return;
@@ -133,35 +264,136 @@
         document.getElementById('image-preview').src = activeBase64;
         document.getElementById('image-preview').classList.remove('hidden');
         document.getElementById('upload-placeholder').classList.add('hidden');
-
-        document.getElementById('ai-status').innerText = '✨ AI is analyzing clothing item...';
-        try {
-          const res = await fetch('/api/analyze-clothing', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ base64Image: activeBase64 })
-          });
-          const data = await res.json();
-          
-          if (data.success) {
-            document.getElementById('input-brand').value = data.details.brand !== 'Unknown' ? data.details.brand : '';
-            document.getElementById('input-color').value = data.details.color || '';
-            document.getElementById('input-size').value = data.details.size !== 'Unknown' ? data.details.size : '';
-            document.getElementById('input-bought').value = data.details.whereBought !== 'Unknown' ? data.details.whereBought : '';
-            document.getElementById('input-category').value = data.details.category || 'Tops';
-            document.getElementById('ai-status').innerText = '✅ AI auto-tagged details! Edit if needed.';
-          } else {
-            document.getElementById('ai-status').innerText = 'Ready. Fill in details manually.';
-          }
-        } catch (err) {
-          document.getElementById('ai-status').innerText = 'Ready. Fill in details manually.';
-        }
+        triggerAIAnalysis(activeBase64);
       };
       reader.readAsDataURL(file);
     }
 
+    // --- WEB IMAGE URL SELECTION & AI ANALYSIS ---
+    async function loadWebImageUrl() {
+      const url = document.getElementById('input-img-url').value.trim();
+      if (!url) return alert('Please enter a valid image URL');
+
+      document.getElementById('ai-status').innerText = '⏳ Loading web image...';
+      try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const reader = new FileReader();
+        reader.onloadend = function() {
+          activeBase64 = reader.result;
+          document.getElementById('url-image-preview').src = activeBase64;
+          document.getElementById('url-preview-container').classList.remove('hidden');
+          triggerAIAnalysis(activeBase64);
+        };
+        reader.readAsDataURL(blob);
+      } catch (err) {
+        document.getElementById('ai-status').innerText = '⚠️ Image URL restricted by CORS. Enter details manually.';
+        activeBase64 = url; // Fallback to raw URL
+      }
+    }
+
+    async function triggerAIAnalysis(base64Data) {
+      document.getElementById('ai-status').innerText = '✨ AI analyzing photo details...';
+      try {
+        const res = await fetch('/api/analyze-clothing', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ base64Image: base64Data })
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+          document.getElementById('input-brand').value = data.details.brand !== 'Unknown' ? data.details.brand : '';
+          document.getElementById('input-color').value = data.details.color || '';
+          document.getElementById('input-size').value = data.details.size !== 'Unknown' ? data.details.size : '';
+          document.getElementById('input-bought').value = data.details.whereBought !== 'Unknown' ? data.details.whereBought : '';
+          
+          // Match AI category if present
+          if (data.details.category && categories.includes(data.details.category)) {
+            document.getElementById('input-category').value = data.details.category;
+          }
+          document.getElementById('ai-status').innerText = '✅ AI auto-tagged! Edit if needed.';
+        } else {
+          document.getElementById('ai-status').innerText = 'Ready. Enter details manually.';
+        }
+      } catch (err) {
+        document.getElementById('ai-status').innerText = 'Ready. Enter details manually.';
+      }
+    }
+
+    // --- CATEGORY MANAGERS ---
+    function populateCategoriesUI() {
+      const selectForm = document.getElementById('input-category');
+      const selectFilter = document.getElementById('filter-category');
+      const selectModal = document.getElementById('modal-select-cat');
+
+      selectForm.innerHTML = categories.map(c => `<option value="${c}">${c}</option>`).join('');
+      selectFilter.innerHTML = `<option value="ALL">All Categories</option>` + categories.filter(c => c !== 'Other').map(c => `<option value="${c}">${c}</option>`).join('');
+      selectModal.innerHTML = categories.filter(c => c !== 'Other').map(c => `<option value="${c}">${c}</option>`).join('');
+      
+      handleCategoryChange();
+    }
+
+    function handleCategoryChange() {
+      const selected = document.getElementById('input-category').value;
+      const customContainer = document.getElementById('custom-category-container');
+      if (selected === 'Other') {
+        customContainer.classList.remove('hidden');
+      } else {
+        customContainer.classList.add('hidden');
+      }
+    }
+
+    function openManageCategoriesModal() {
+      document.getElementById('modal-manage-categories').classList.remove('hidden');
+    }
+
+    function closeManageCategoriesModal() {
+      document.getElementById('modal-manage-categories').classList.add('hidden');
+    }
+
+    function renameCategorySubmit() {
+      const oldCat = document.getElementById('modal-select-cat').value;
+      const newCat = document.getElementById('modal-input-new-cat-name').value.trim();
+
+      if (!newCat) return alert('Enter a new name');
+
+      // Update category array
+      categories = categories.map(c => c === oldCat ? newCat : c);
+      localStorage.setItem('wardrobe_categories', JSON.stringify(categories));
+
+      // Update wardrobe items with old category
+      wardrobe.forEach(item => {
+        if (item.category === oldCat) item.category = newCat;
+      });
+      localStorage.setItem('wardrobe_items', JSON.stringify(wardrobe));
+
+      document.getElementById('modal-input-new-cat-name').value = '';
+      closeManageCategoriesModal();
+      populateCategoriesUI();
+      renderWardrobe();
+    }
+
+    // --- SAVE CLOSET ITEM ---
     function saveItem() {
-      if (!activeBase64) return alert('Please upload a photo first.');
+      if (!activeBase64) return alert('Please upload a photo or provide an image URL first.');
+
+      let selectedCategory = document.getElementById('input-category').value;
+      
+      // If "Other" chosen, add custom category to dynamic list
+      if (selectedCategory === 'Other') {
+        const customCat = document.getElementById('input-custom-category').value.trim();
+        if (customCat) {
+          selectedCategory = customCat;
+          if (!categories.includes(customCat)) {
+            categories.splice(categories.length - 1, 0, customCat); // Insert before "Other"
+            localStorage.setItem('wardrobe_categories', JSON.stringify(categories));
+            populateCategoriesUI();
+          }
+        } else {
+          selectedCategory = 'Uncategorized';
+        }
+      }
 
       const newItem = {
         id: Date.now(),
@@ -170,50 +402,140 @@
         color: document.getElementById('input-color').value || 'Unspecified',
         size: document.getElementById('input-size').value || 'N/A',
         whereBought: document.getElementById('input-bought').value || 'N/A',
-        category: document.getElementById('input-category').value
+        category: selectedCategory
       };
 
       wardrobe.unshift(newItem);
       localStorage.setItem('wardrobe_items', JSON.stringify(wardrobe));
 
+      // Reset Form Inputs
       activeBase64 = null;
       document.getElementById('image-preview').classList.add('hidden');
       document.getElementById('upload-placeholder').classList.remove('hidden');
+      document.getElementById('url-preview-container').classList.add('hidden');
+      document.getElementById('input-img-url').value = '';
       document.getElementById('input-brand').value = '';
       document.getElementById('input-color').value = '';
       document.getElementById('input-size').value = '';
       document.getElementById('input-bought').value = '';
+      document.getElementById('input-custom-category').value = '';
       document.getElementById('ai-status').innerText = '';
 
+      updateFilterDropdowns();
       renderWardrobe();
     }
 
+    // --- FILTER DROPDOWNS POPULATION ---
+    function updateFilterDropdowns() {
+      const colors = [...new Set(wardrobe.map(i => i.color))].filter(Boolean);
+      const brands = [...new Set(wardrobe.map(i => i.brand))].filter(Boolean);
+
+      document.getElementById('filter-color').innerHTML = `<option value="ALL">All Colors</option>` + colors.map(c => `<option value="${c}">${c}</option>`).join('');
+      document.getElementById('filter-brand').innerHTML = `<option value="ALL">All Brands</option>` + brands.map(b => `<option value="${b}">${b}</option>`).join('');
+    }
+
+    // --- VIEW MODE SWITCHER ---
+    function setViewMode(mode) {
+      currentViewMode = mode;
+      ['grid-3', 'grid-2', 'single'].forEach(m => {
+        const btn = document.getElementById(`btn-view-${m}`);
+        if (m === mode) {
+          btn.className = 'px-2.5 py-1.5 rounded-lg bg-white shadow-xs text-indigo-600 font-semibold';
+        } else {
+          btn.className = 'px-2.5 py-1.5 rounded-lg text-gray-600 font-semibold';
+        }
+      });
+      renderWardrobe();
+    }
+
+    // --- RENDER WARDROBE ---
     function renderWardrobe() {
-      const grid = document.getElementById('items-grid');
-      if (wardrobe.length === 0) {
-        grid.innerHTML = `<p class="col-span-full text-sm text-gray-400 text-center py-8">No clothing items added yet.</p>`;
+      const container = document.getElementById('items-display-container');
+      
+      const filterCat = document.getElementById('filter-category').value;
+      const filterCol = document.getElementById('filter-color').value;
+      const filterBr = document.getElementById('filter-brand').value;
+
+      // Filter Logic
+      const filtered = wardrobe.filter(item => {
+        const matchesCat = (filterCat === 'ALL' || item.category === filterCat);
+        const matchesCol = (filterCol === 'ALL' || item.color === filterCol);
+        const matchesBr = (filterBr === 'ALL' || item.brand === filterBr);
+        return matchesCat && matchesCol && matchesBr;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<p class="text-sm text-gray-400 text-center py-12 bg-white rounded-2xl border">No items match your filter criteria.</p>`;
         return;
       }
 
-      grid.innerHTML = wardrobe.map(item => `
-        <div class="bg-white rounded-xl border p-2 shadow-sm space-y-2 relative group">
-          <img src="${item.image}" class="w-full h-36 object-cover rounded-lg">
-          <div>
-            <p class="font-bold text-sm text-gray-900 truncate">${item.brand}</p>
-            <p class="text-xs text-gray-500">${item.color} • ${item.size}</p>
-            <p class="text-xs text-gray-400 truncate">Bought: ${item.whereBought}</p>
+      // 1. Single Item View
+      if (currentViewMode === 'single') {
+        if (singleViewIndex >= filtered.length) singleViewIndex = 0;
+        const item = filtered[singleViewIndex];
+
+        container.innerHTML = `
+          <div class="bg-white rounded-2xl border p-4 shadow-sm max-w-md mx-auto space-y-4 relative">
+            <div class="relative h-80 rounded-xl overflow-hidden bg-gray-100">
+              <img src="${item.image}" class="w-full h-full object-contain">
+              <button onclick="deleteItem(${item.id})" class="absolute top-3 right-3 bg-red-600 text-white text-xs px-2.5 py-1 rounded-md shadow-sm">Delete</button>
+            </div>
+            <div class="space-y-1">
+              <div class="flex justify-between items-center">
+                <span class="text-xs font-bold bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-full">${item.category}</span>
+                <span class="text-xs font-semibold text-gray-400">Item ${singleViewIndex + 1} of ${filtered.length}</span>
+              </div>
+              <h3 class="text-lg font-bold text-gray-900">${item.brand}</h3>
+              <p class="text-sm text-gray-600">Color: <strong>${item.color}</strong> • Size: <strong>${item.size}</strong></p>
+              <p class="text-xs text-gray-400">Purchased at: ${item.whereBought}</p>
+            </div>
+            
+            <!-- Navigation buttons -->
+            <div class="flex gap-2 pt-2 border-t">
+              <button onclick="navigateSingleView(-1, ${filtered.length})" class="flex-1 py-2 bg-gray-100 rounded-xl text-xs font-semibold text-gray-700">← Previous</button>
+              <button onclick="navigateSingleView(1, ${filtered.length})" class="flex-1 py-2 bg-indigo-600 rounded-xl text-xs font-semibold text-white">Next →</button>
+            </div>
           </div>
-          <button onclick="deleteItem(${item.id})" class="absolute top-3 right-3 bg-red-600 text-white text-xs px-2 py-1 rounded-md opacity-80 hover:opacity-100">Delete</button>
+        `;
+        return;
+      }
+
+      // 2. Grid Views (grid-2 or grid-3)
+      const gridClass = currentViewMode === 'grid-2' ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4';
+
+      container.innerHTML = `
+        <div class="grid ${gridClass} gap-4">
+          ${filtered.map(item => `
+            <div class="bg-white rounded-xl border p-2.5 shadow-sm space-y-2 relative group flex flex-col justify-between">
+              <div>
+                <img src="${item.image}" class="w-full h-36 object-cover rounded-lg bg-gray-50">
+                <div class="mt-2 space-y-0.5">
+                  <span class="text-[10px] font-bold bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full inline-block mb-1">${item.category}</span>
+                  <p class="font-bold text-sm text-gray-900 truncate">${item.brand}</p>
+                  <p class="text-xs text-gray-500">${item.color} •${item.size}</p>
+                  <p class="text-[11px] text-gray-400 truncate">Bought: ${item.whereBought}</p>
+                </div>
+              </div>
+              <button onclick="deleteItem(${item.id})" class="mt-2 w-full bg-red-50 hover:bg-red-100 text-red-600 text-xs py-1 rounded-md font-semibold">Delete</button>
+            </div>
+          `).join('')}
         </div>
-      `).join('');
+      `;
+    }
+
+    function navigateSingleView(direction, maxLen) {
+      singleViewIndex = (singleViewIndex + direction + maxLen) % maxLen;
+      renderWardrobe();
     }
 
     function deleteItem(id) {
       wardrobe = wardrobe.filter(i => i.id !== id);
       localStorage.setItem('wardrobe_items', JSON.stringify(wardrobe));
+      updateFilterDropdowns();
       renderWardrobe();
     }
 
+    // --- OUTFIT CANVAS ---
     function renderCanvasPicker() {
       const tray = document.getElementById('canvas-picker');
       tray.innerHTML = wardrobe.map(item => `
@@ -277,6 +599,9 @@
       `).join('');
     }
 
+    // Initial Setup
+    populateCategoriesUI();
+    updateFilterDropdowns();
     renderWardrobe();
   </script>
 </body>
