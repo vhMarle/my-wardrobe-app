@@ -11,7 +11,7 @@
   <style>
     .canvas-grid {
       background-size: 20px 20px;
-      background-image: radial-gradient(circle, #e5e7eb 1px, transparent 1px);
+      background-image: radial-gradient(circle, #cbd5e1 1px, transparent 1px);
     }
     .corner-handle {
       width: 14px;
@@ -21,6 +21,10 @@
       border-radius: 3px;
       position: absolute;
       z-index: 20;
+    }
+    .outfit-item-selected {
+      outline: 2px dashed #6366f1;
+      outline-offset: 4px;
     }
   </style>
 </head>
@@ -39,6 +43,7 @@
 
   <main class="max-w-4xl mx-auto p-4">
     
+    <!-- SECTION 1: CLOSET & ADD ITEM -->
     <section id="view-wardrobe" class="space-y-6">
       
       <div class="bg-white p-5 rounded-2xl border shadow-sm space-y-4">
@@ -72,61 +77,67 @@
             </div>
           </div>
 
-          <!-- DRAG & DIAGONAL CORNER SCALE EDITOR -->
-          <div id="editor-container" class="hidden space-y-2 pt-2 border-t">
-            <div class="flex justify-between items-center">
-              <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Image Preview & Adjustments</label>
-              <button type="button" onclick="resetImageTransform()" class="text-xs font-semibold text-indigo-600 hover:underline">⟲ Reset Align</button>
-            </div>
-            
+          <!-- SIDE-BY-SIDE EDITOR & ITEM DETAILS -->
+          <div id="editor-container" class="hidden space-y-4 pt-4 border-t">
             <p class="text-[11px] text-gray-400">💡 <strong>Click & drag image</strong> to reposition. <strong>Drag any blue corner handle</strong> diagonally outward to enlarge, or inward to shrink.</p>
 
-            <div class="flex justify-center">
-              <div id="crop-viewport" class="w-72 h-72 border-2 border-indigo-200 rounded-2xl bg-gray-100 relative overflow-hidden flex items-center justify-center shadow-inner cursor-grab active:cursor-grabbing">
-                
-                <div id="transform-wrapper" class="absolute flex items-center justify-center w-full h-full pointer-events-none" style="transform: translate(0px, 0px) scale(1);">
-                  <img id="image-preview" class="max-w-full max-h-full object-contain pointer-events-none select-none">
-                  
-                  <div id="handle-tl" data-corner="tl" class="corner-handle -top-2 -left-2 cursor-nwse-resize pointer-events-auto"></div>
-                  <div id="handle-tr" data-corner="tr" class="corner-handle -top-2 -right-2 cursor-nesw-resize pointer-events-auto"></div>
-                  <div id="handle-bl" data-corner="bl" class="corner-handle -bottom-2 -left-2 cursor-nesw-resize pointer-events-auto"></div>
-                  <div id="handle-br" data-corner="br" class="corner-handle -bottom-2 -right-2 cursor-nwse-resize pointer-events-auto"></div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+              
+              <!-- LEFT COLUMN: Image Box -->
+              <div class="space-y-2">
+                <div class="flex justify-between items-center">
+                  <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Image Adjustments</label>
+                  <button type="button" onclick="resetImageTransform()" class="text-xs font-semibold text-indigo-600 hover:underline">⟲ Reset Align</button>
                 </div>
-
+                <div class="flex justify-center">
+                  <div id="crop-viewport" class="w-64 h-64 border-2 border-indigo-200 rounded-2xl bg-gray-100 relative overflow-hidden flex items-center justify-center shadow-inner cursor-grab active:cursor-grabbing">
+                    <div id="transform-wrapper" class="absolute flex items-center justify-center w-full h-full pointer-events-none" style="transform: translate(0px, 0px) scale(1);">
+                      <img id="image-preview" class="max-w-full max-h-full object-contain pointer-events-none select-none">
+                      
+                      <div id="handle-tl" data-corner="tl" class="corner-handle -top-2 -left-2 cursor-nwse-resize pointer-events-auto"></div>
+                      <div id="handle-tr" data-corner="tr" class="corner-handle -top-2 -right-2 cursor-nesw-resize pointer-events-auto"></div>
+                      <div id="handle-bl" data-corner="bl" class="corner-handle -bottom-2 -left-2 cursor-nesw-resize pointer-events-auto"></div>
+                      <div id="handle-br" data-corner="br" class="corner-handle -bottom-2 -right-2 cursor-nwse-resize pointer-events-auto"></div>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        </div>
 
-        <div class="space-y-3 pt-2">
-          <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider">2. Item Details</label>
-          <div class="grid grid-cols-2 gap-3">
-            
-            <div class="col-span-2 sm:col-span-1">
-              <label class="text-xs font-semibold text-gray-500">Category</label>
-              <select id="input-category" class="w-full p-2 border rounded-lg text-sm bg-white" onchange="handleCategoryChange()"></select>
-            </div>
+              <!-- RIGHT COLUMN: Item Details -->
+              <div class="space-y-3">
+                <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider block">Item Details</label>
+                <div class="space-y-2.5">
+                  <div>
+                    <label class="text-xs font-semibold text-gray-500">Category</label>
+                    <select id="input-category" class="w-full p-2 border rounded-lg text-sm bg-white mt-1" onchange="handleCategoryChange()"></select>
+                  </div>
 
-            <div id="custom-category-container" class="col-span-2 sm:col-span-1 hidden">
-              <label class="text-xs font-semibold text-indigo-600">New Category Name</label>
-              <input type="text" id="input-custom-category" placeholder="e.g. Scarves, Hats" class="w-full p-2 border border-indigo-300 rounded-lg text-sm bg-indigo-50">
-            </div>
+                  <div id="custom-category-container" class="hidden">
+                    <label class="text-xs font-semibold text-indigo-600">New Category Name</label>
+                    <input type="text" id="input-custom-category" placeholder="e.g. Scarves, Hats" class="w-full p-2 border border-indigo-300 rounded-lg text-sm bg-indigo-50 mt-1">
+                  </div>
 
-            <div>
-              <label class="text-xs font-semibold text-gray-500">Brand</label>
-              <input type="text" id="input-brand" placeholder="e.g. Hill House" class="w-full p-2 border rounded-lg text-sm">
-            </div>
-            <div>
-              <label class="text-xs font-semibold text-gray-500">Color</label>
-              <input type="text" id="input-color" placeholder="e.g. Burgundy / Emerald" class="w-full p-2 border rounded-lg text-sm">
-            </div>
-            <div>
-              <label class="text-xs font-semibold text-gray-500">Size</label>
-              <input type="text" id="input-size" placeholder="e.g. Medium / 10" class="w-full p-2 border rounded-lg text-sm">
-            </div>
-            <div>
-              <label class="text-xs font-semibold text-gray-500">Where Bought</label>
-              <input type="text" id="input-bought" placeholder="e.g. Hill House Home" class="w-full p-2 border rounded-lg text-sm">
+                  <div>
+                    <label class="text-xs font-semibold text-gray-500">Brand</label>
+                    <input type="text" id="input-brand" placeholder="e.g. Hill House" class="w-full p-2 border rounded-lg text-sm mt-1">
+                  </div>
+                  <div>
+                    <label class="text-xs font-semibold text-gray-500">Color</label>
+                    <input type="text" id="input-color" placeholder="e.g. Burgundy / Emerald" class="w-full p-2 border rounded-lg text-sm mt-1">
+                  </div>
+                  <div class="grid grid-cols-2 gap-2">
+                    <div>
+                      <label class="text-xs font-semibold text-gray-500">Size</label>
+                      <input type="text" id="input-size" placeholder="e.g. M / 10" class="w-full p-2 border rounded-lg text-sm mt-1">
+                    </div>
+                    <div>
+                      <label class="text-xs font-semibold text-gray-500">Where Bought</label>
+                      <input type="text" id="input-bought" placeholder="e.g. Hill House Home" class="w-full p-2 border rounded-lg text-sm mt-1">
+                    </div>
+                  </div>
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
@@ -178,23 +189,76 @@
       <div id="items-display-container"></div>
     </section>
 
+    <!-- SECTION 2: INTERACTIVE MODEL STYLING OUTFIT CANVAS -->
     <section id="view-outfit" class="hidden space-y-4">
       <div class="flex items-center justify-between">
-        <h2 class="text-lg font-bold text-gray-900">Interactive Canvas</h2>
-        <button onclick="saveOutfit()" class="bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-emerald-700">Save Outfit Idea</button>
+        <div>
+          <h2 class="text-lg font-bold text-gray-900">Virtual Stylist Canvas</h2>
+          <p class="text-xs text-gray-500">Tap wardrobe items below to place onto the mannequin. Click an item to drag, resize, or layer!</p>
+        </div>
+        <button onclick="saveOutfit()" class="bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-emerald-700 shadow-sm">Save Outfit Idea</button>
       </div>
 
-      <div id="canvas" class="w-full h-96 bg-white border-2 border-dashed border-gray-300 rounded-2xl canvas-grid relative overflow-hidden flex items-center justify-center">
-        <p id="canvas-empty-msg" class="text-sm text-gray-400">Tap items below to add them to your look</p>
-        <div id="canvas-items-container" class="absolute inset-0"></div>
+      <!-- CANVAS STYLING AREA WITH MODEL -->
+      <div class="relative flex flex-col md:flex-row gap-4">
+        
+        <!-- Interactive Model Canvas -->
+        <div id="canvas-wrapper" class="flex-1 h-[500px] bg-white border-2 border-indigo-200 rounded-2xl relative overflow-hidden flex items-center justify-center shadow-inner canvas-grid">
+          
+          <!-- Model Silhouette Vector Graphic -->
+          <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
+            <svg class="h-full max-h-[460px] text-gray-700 fill-current" viewBox="0 0 100 300">
+              <!-- Head & Hair -->
+              <circle cx="50" cy="35" r="16" />
+              <!-- Neck -->
+              <path d="M46 50 L54 50 L55 60 L45 60 Z" />
+              <!-- Shoulders & Torso -->
+              <path d="M28 65 Q50 60 72 65 L66 140 Q50 145 34 140 Z" />
+              <!-- Hips & Legs -->
+              <path d="M34 140 Q50 145 66 140 L62 280 L52 280 L50 190 L48 280 L38 280 Z" />
+              <!-- Arms -->
+              <path d="M28 65 L20 135 L25 137 L32 75 Z" />
+              <path d="M72 65 L80 135 L75 137 L68 75 Z" />
+            </svg>
+          </div>
+
+          <p id="canvas-empty-msg" class="text-xs text-gray-400 absolute bottom-4 bg-white/80 px-3 py-1 rounded-full border">Tap wardrobe items from tray below to dress the model</p>
+          
+          <div id="canvas-items-container" class="absolute inset-0"></div>
+        </div>
+
+        <!-- Selected Item Controls Sidebar -->
+        <div id="canvas-controls" class="w-full md:w-48 bg-white p-3 rounded-2xl border space-y-3 hidden flex-shrink-0">
+          <h3 class="text-xs font-bold text-gray-700 uppercase tracking-wider border-b pb-1">Selected Garment</h3>
+          
+          <div class="space-y-2">
+            <div>
+              <label class="text-[11px] font-semibold text-gray-500">Scale / Size</label>
+              <input type="range" id="item-scale-slider" min="0.4" max="2.5" step="0.05" value="1" oninput="updateSelectedItemScale()" class="w-full accent-indigo-600">
+            </div>
+
+            <div class="pt-1 space-y-1">
+              <label class="text-[11px] font-semibold text-gray-500 block">Layering Order</label>
+              <div class="flex gap-1">
+                <button onclick="changeSelectedZIndex(1)" class="flex-1 py-1 bg-gray-100 hover:bg-gray-200 rounded text-[11px] font-semibold">Bring Forward ↑</button>
+                <button onclick="changeSelectedZIndex(-1)" class="flex-1 py-1 bg-gray-100 hover:bg-gray-200 rounded text-[11px] font-semibold">Send Back ↓</button>
+              </div>
+            </div>
+
+            <button onclick="removeSelectedCanvasItem()" class="w-full py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg text-xs font-semibold mt-2">Remove Item 🗑️</button>
+          </div>
+        </div>
+
       </div>
 
-      <div>
-        <h3 class="text-sm font-bold text-gray-700 mb-2">Tap item to add to canvas:</h3>
-        <div id="canvas-picker" class="flex gap-3 overflow-x-auto pb-2"></div>
+      <!-- Wardrobe Selection Tray -->
+      <div class="bg-white p-3 rounded-2xl border space-y-2">
+        <h3 class="text-xs font-bold text-gray-700 uppercase tracking-wider">Tap item to place onto model:</h3>
+        <div id="canvas-picker" class="flex gap-3 overflow-x-auto pb-1"></div>
       </div>
     </section>
 
+    <!-- SECTION 3: SAVED LOOKBOOK -->
     <section id="view-saved" class="hidden space-y-4">
       <h2 class="text-lg font-bold text-gray-900">Saved Outfit Ideas</h2>
       <div id="lookbook-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
@@ -275,9 +339,9 @@
     let activeSourceMode = 'file';
     let currentViewMode = 'grid-3';
     let singleViewIndex = 0;
-    let currentCanvasItems = [];
     let activeBase64 = null;
 
+    // Image Editor Transform Parameters
     let transformX = 0;
     let transformY = 0;
     let transformScale = 1;
@@ -285,6 +349,12 @@
     let isDraggingImage = false;
     let isResizingCorner = false;
     let startX, startY, startScale, startXPos, startYPos, initialDist;
+
+    // Interactive Outfit Canvas State
+    let canvasItems = [];
+    let selectedCanvasItemId = null;
+    let isDraggingCanvasItem = false;
+    let dragOffsetX = 0, dragOffsetY = 0;
 
     function switchTab(tab) {
       ['wardrobe', 'outfit', 'saved'].forEach(t => {
@@ -371,7 +441,6 @@
       updateImageTransform();
     }
 
-    // CORNER SCALING (OUTWARD = ENLARGE, INWARD = SHRINK)
     function initInteractiveControls() {
       const viewport = document.getElementById('crop-viewport');
       const handles = document.querySelectorAll('.corner-handle');
@@ -479,7 +548,6 @@
       }
     }
 
-    // EDIT ITEM MODAL LOGIC
     function openEditItemModal(id) {
       const item = wardrobe.find(i => i.id === id);
       if (!item) return;
@@ -700,10 +768,11 @@
       renderWardrobe();
     }
 
+    // --- INTERACTIVE OUTFIT CANVAS & MODEL DRESSING LOGIC ---
     function renderCanvasPicker() {
       const tray = document.getElementById('canvas-picker');
       tray.innerHTML = wardrobe.map(item => `
-        <img src="${item.image}" onclick="addToCanvas(${item.id})" class="w-20 h-20 object-contain rounded-xl border-2 border-transparent hover:border-indigo-600 cursor-pointer flex-shrink-0 bg-white p-1">
+        <img src="${item.image}" onclick="addToCanvas(${item.id})" class="w-20 h-20 object-contain rounded-xl border-2 border-transparent hover:border-indigo-600 cursor-pointer flex-shrink-0 bg-white p-1 shadow-xs">
       `).join('');
     }
 
@@ -712,34 +781,135 @@
       if (!item) return;
 
       document.getElementById('canvas-empty-msg').classList.add('hidden');
-      currentCanvasItems.push(item);
 
+      const canvasItemId = Date.now();
+      const canvasObj = {
+        canvasItemId,
+        originalId: item.id,
+        image: item.image,
+        category: item.category,
+        x: 120,
+        y: 100,
+        scale: 1,
+        zIndex: canvasItems.length + 1
+      };
+
+      canvasItems.push(canvasObj);
+      renderCanvasItems();
+      selectCanvasItem(canvasItemId);
+    }
+
+    function renderCanvasItems() {
       const container = document.getElementById('canvas-items-container');
-      const img = document.createElement('img');
-      img.src = item.image;
-      img.className = 'absolute w-28 h-28 object-contain rounded-xl border shadow-md cursor-move bg-white p-1';
-      img.style.left = `${Math.random() * 40 + 20}%`;
-      img.style.top = `${Math.random() * 40 + 20}%`;
-      container.appendChild(img);
+      container.innerHTML = '';
+
+      canvasItems.forEach(item => {
+        const div = document.createElement('div');
+        div.id = `canvas-item-${item.canvasItemId}`;
+        div.className = `absolute cursor-grab active:cursor-grabbing p-1 rounded-xl transition-shadow ${selectedCanvasItemId === item.canvasItemId ? 'outfit-item-selected' : ''}`;
+        div.style.left = `${item.x}px`;
+        div.style.top = `${item.y}px`;
+        div.style.zIndex = item.zIndex;
+
+        const img = document.createElement('img');
+        img.src = item.image;
+        img.className = 'w-32 h-32 object-contain pointer-events-none';
+        img.style.transform = `scale(${item.scale})`;
+
+        div.appendChild(img);
+
+        div.onmousedown = function(e) {
+          selectCanvasItem(item.canvasItemId);
+          isDraggingCanvasItem = true;
+          dragOffsetX = e.clientX - item.x;
+          dragOffsetY = e.clientY - item.y;
+          e.stopPropagation();
+        };
+
+        container.appendChild(div);
+      });
+    }
+
+    window.addEventListener('mousemove', function(e) {
+      if (isDraggingCanvasItem && selectedCanvasItemId) {
+        const item = canvasItems.find(i => i.canvasItemId === selectedCanvasItemId);
+        if (item) {
+          item.x = e.clientX - dragOffsetX;
+          item.y = e.clientY - dragOffsetY;
+          
+          const el = document.getElementById(`canvas-item-${item.canvasItemId}`);
+          if (el) {
+            el.style.left = `${item.x}px`;
+            el.style.top = `${item.y}px`;
+          }
+        }
+      }
+    });
+
+    window.addEventListener('mouseup', function() {
+      isDraggingCanvasItem = false;
+    });
+
+    function selectCanvasItem(canvasItemId) {
+      selectedCanvasItemId = canvasItemId;
+      const controls = document.getElementById('canvas-controls');
+      controls.classList.remove('hidden');
+
+      const item = canvasItems.find(i => i.canvasItemId === canvasItemId);
+      if (item) {
+        document.getElementById('item-scale-slider').value = item.scale;
+      }
+      renderCanvasItems();
+    }
+
+    function updateSelectedItemScale() {
+      if (!selectedCanvasItemId) return;
+      const item = canvasItems.find(i => i.canvasItemId === selectedCanvasItemId);
+      if (item) {
+        item.scale = parseFloat(document.getElementById('item-scale-slider').value);
+        renderCanvasItems();
+      }
+    }
+
+    function changeSelectedZIndex(delta) {
+      if (!selectedCanvasItemId) return;
+      const item = canvasItems.find(i => i.canvasItemId === selectedCanvasItemId);
+      if (item) {
+        item.zIndex = Math.max(1, item.zIndex + delta);
+        renderCanvasItems();
+      }
+    }
+
+    function removeSelectedCanvasItem() {
+      if (!selectedCanvasItemId) return;
+      canvasItems = canvasItems.filter(i => i.canvasItemId !== selectedCanvasItemId);
+      selectedCanvasItemId = null;
+      document.getElementById('canvas-controls').classList.add('hidden');
+      if (canvasItems.length === 0) {
+        document.getElementById('canvas-empty-msg').classList.remove('hidden');
+      }
+      renderCanvasItems();
     }
 
     function saveOutfit() {
-      if (currentCanvasItems.length === 0) return alert('Add at least one item to the canvas.');
+      if (canvasItems.length === 0) return alert('Add at least one item onto the mannequin first.');
 
       const outfit = {
         id: Date.now(),
         date: new Date().toLocaleDateString(),
-        items: [...currentCanvasItems]
+        items: canvasItems.map(i => ({ image: i.image, category: i.category }))
       };
 
       outfits.unshift(outfit);
       localStorage.setItem('wardrobe_outfits', JSON.stringify(outfits));
 
-      currentCanvasItems = [];
-      document.getElementById('canvas-items-container').innerHTML = '';
+      canvasItems = [];
+      selectedCanvasItemId = null;
+      document.getElementById('canvas-controls').classList.add('hidden');
       document.getElementById('canvas-empty-msg').classList.remove('hidden');
+      renderCanvasItems();
 
-      alert('Outfit idea saved to Lookbook!');
+      alert('Stylist outfit idea saved to Lookbook!');
       switchTab('saved');
     }
 
@@ -754,7 +924,7 @@
         <div class="bg-white p-4 rounded-xl border shadow-sm space-y-3">
           <div class="flex justify-between items-center">
             <span class="text-xs font-bold text-gray-400">Created: ${o.date}</span>
-            <span class="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full font-semibold">${o.items.length} Items</span>
+            <span class="text-xs bg-indigo-50 text-indigo-600 px-2.5 py-0.5 rounded-full font-semibold">${o.items.length} Items</span>
           </div>
           <div class="flex gap-2 overflow-x-auto pb-1">
             ${o.items.map(i => `<img src="${i.image}" class="w-16 h-16 object-contain rounded-lg border p-1 bg-gray-50">`).join('')}
