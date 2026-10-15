@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Digital Wardrobe & Outfit Planner</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .canvas-grid {
+      background-size: 20px 20px;
+      background-image: radial-gradient(circle, #e5e7eb 1px, transparent 1px);
+    }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans min-h-screen pb-16">
+  
+  <header class="bg-white border-b sticky top-0 z-40 px-4 py-3 flex items-center justify-between shadow-sm">
+    <h1 class="text-xl font-bold text-indigo-600 flex items-center gap-2">
+      👔 My Wardrobe
+    </h1>
+    <nav class="flex gap-2">
+      <button onclick="switchTab('wardrobe')" id="tab-wardrobe" class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-indigo-600 text-white">Closet</button>
+      <button onclick="switchTab('outfit')" id="tab-outfit" class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-gray-100 text-gray-700">Outfit Canvas</button>
+      <button onclick="switchTab('saved')" id="tab-saved" class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-gray-100 text-gray-700">Lookbook</button>
+    </nav>
+  </header>
+
+  <main class="max-w-4xl mx-auto p-4">
+    <section id="view-wardrobe" class="space-y-6">
+      <div class="bg-white p-5 rounded-2xl border shadow-sm space-y-4">
+        <h2 class="text-lg font-bold text-gray-900">Add New Clothing Item</h2>
+        
+        <div class="flex flex-col md:flex-row gap-4 items-center">
+          <label class="w-full md:w-48 h-48 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 overflow-hidden relative bg-gray-50">
+            <img id="image-preview" class="hidden absolute inset-0 w-full h-full object-cover">
+            <div id="upload-placeholder" class="text-center p-4">
+              <span class="text-3xl">📷</span>
+              <p class="text-xs text-gray-500 mt-1">Tap to upload / take photo</p>
+            </div>
+            <input type="file" id="file-input" accept="image/*" class="hidden" onchange="handleFileSelect(event)">
+          </label>
+
+          <div class="flex-1 grid grid-cols-2 gap-3 w-full">
+            <div>
+              <label class="text-xs font-semibold text-gray-500">Brand</label>
+              <input type="text" id="input-brand" placeholder="e.g. Zara" class="w-full p-2 border rounded-lg text-sm">
+            </div>
+            <div>
+              <label class="text-xs font-semibold text-gray-500">Color</label>
+              <input type="text" id="input-color" placeholder="e.g. Navy Blue" class="w-full p-2 border rounded-lg text-sm">
+            </div>
+            <div>
+              <label class="text-xs font-semibold text-gray-500">Size</label>
+              <input type="text" id="input-size" placeholder="e.g. Medium / 10" class="w-full p-2 border rounded-lg text-sm">
+            </div>
+            <div>
+              <label class="text-xs font-semibold text-gray-500">Where Bought</label>
+              <input type="text" id="input-bought" placeholder="e.g. Nordstrom" class="w-full p-2 border rounded-lg text-sm">
+            </div>
+            <div class="col-span-2">
+              <label class="text-xs font-semibold text-gray-500">Category</label>
+              <select id="input-category" class="w-full p-2 border rounded-lg text-sm">
+                <option value="Tops">Tops</option>
+                <option value="Bottoms">Bottoms</option>
+                <option value="Outerwear">Outerwear</option>
+                <option value="Shoes">Shoes</option>
+                <option value="Accessories">Accessories</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between pt-2 border-t">
+          <span id="ai-status" class="text-xs font-medium text-indigo-600"></span>
+          <button onclick="saveItem()" class="bg-indigo-600 text-white px-5 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-700">Save Item</button>
+        </div>
+      </div>
+
+      <div>
+        <h2 class="text-lg font-bold text-gray-900 mb-3">Your Closet Items</h2>
+        <div id="items-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"></div>
+      </div>
+    </section>
+
+    <section id="view-outfit" class="hidden space-y-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-bold text-gray-900">Interactive Canvas</h2>
+        <button onclick="saveOutfit()" class="bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-emerald-700">Save Outfit Idea</button>
+      </div>
+
+      <div id="canvas" class="w-full h-96 bg-white border-2 border-dashed border-gray-300 rounded-2xl canvas-grid relative overflow-hidden flex items-center justify-center">
+        <p id="canvas-empty-msg" class="text-sm text-gray-400">Tap items below to add them to your look</p>
+        <div id="canvas-items-container" class="absolute inset-0"></div>
+      </div>
+
+      <div>
+        <h3 class="text-sm font-bold text-gray-700 mb-2">Tap item to add to canvas:</h3>
+        <div id="canvas-picker" class="flex gap-3 overflow-x-auto pb-2"></div>
+      </div>
+    </section>
+
+    <section id="view-saved" class="hidden space-y-4">
+      <h2 class="text-lg font-bold text-gray-900">Saved Outfit Ideas</h2>
+      <div id="lookbook-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+    </section>
+  </main>
+
+  <script>
+    let wardrobe = JSON.parse(localStorage.getItem('wardrobe_items') || '[]');
+    let outfits = JSON.parse(localStorage.getItem('wardrobe_outfits') || '[]');
+    let currentCanvasItems = [];
+    let activeBase64 = null;
+
+    function switchTab(tab) {
+      ['wardrobe', 'outfit', 'saved'].forEach(t => {
+        document.getElementById(`view-${t}`).classList.add('hidden');
+        document.getElementById(`tab-${t}`).className = 'px-3 py-1.5 rounded-lg text-sm font-semibold bg-gray-100 text-gray-700';
+      });
+      document.getElementById(`view-${tab}`).classList.remove('hidden');
+      document.getElementById(`tab-${tab}`).className = 'px-3 py-1.5 rounded-lg text-sm font-semibold bg-indigo-600 text-white';
+
+      if (tab === 'outfit') renderCanvasPicker();
+      if (tab === 'saved') renderLookbook();
+    }
+
+    async function handleFileSelect(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async function(e) {
+        activeBase64 = e.target.result;
+        document.getElementById('image-preview').src = activeBase64;
+        document.getElementById('image-preview').classList.remove('hidden');
+        document.getElementById('upload-placeholder').classList.add('hidden');
+
+        document.getElementById('ai-status').innerText = '✨ AI is analyzing clothing item...';
+        try {
+          const res = await fetch('/api/analyze-clothing', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ base64Image: activeBase64 })
+          });
+          const data = await res.json();
+          
+          if (data.success) {
+            document.getElementById('input-brand').value = data.details.brand !== 'Unknown' ? data.details.brand : '';
+            document.getElementById('input-color').value = data.details.color || '';
+            document.getElementById('input-size').value = data.details.size !== 'Unknown' ? data.details.size : '';
+            document.getElementById('input-bought').value = data.details.whereBought !== 'Unknown' ? data.details.whereBought : '';
+            document.getElementById('input-category').value = data.details.category || 'Tops';
+            document.getElementById('ai-status').innerText = '✅ AI auto-tagged details! Edit if needed.';
+          } else {
+            document.getElementById('ai-status').innerText = 'Ready. Fill in details manually.';
+          }
+        } catch (err) {
+          document.getElementById('ai-status').innerText = 'Ready. Fill in details manually.';
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function saveItem() {
+      if (!activeBase64) return alert('Please upload a photo first.');
+
+      const newItem = {
+        id: Date.now(),
+        image: activeBase64,
+        brand: document.getElementById('input-brand').value || 'Unbranded',
+        color: document.getElementById('input-color').value || 'Unspecified',
+        size: document.getElementById('input-size').value || 'N/A',
+        whereBought: document.getElementById('input-bought').value || 'N/A',
+        category: document.getElementById('input-category').value
+      };
+
+      wardrobe.unshift(newItem);
+      localStorage.setItem('wardrobe_items', JSON.stringify(wardrobe));
+
+      activeBase64 = null;
+      document.getElementById('image-preview').classList.add('hidden');
+      document.getElementById('upload-placeholder').classList.remove('hidden');
+      document.getElementById('input-brand').value = '';
+      document.getElementById('input-color').value = '';
+      document.getElementById('input-size').value = '';
+      document.getElementById('input-bought').value = '';
+      document.getElementById('ai-status').innerText = '';
+
+      renderWardrobe();
+    }
+
+    function renderWardrobe() {
+      const grid = document.getElementById('items-grid');
+      if (wardrobe.length === 0) {
+        grid.innerHTML = `<p class="col-span-full text-sm text-gray-400 text-center py-8">No clothing items added yet.</p>`;
+        return;
+      }
+
+      grid.innerHTML = wardrobe.map(item => `
+        <div class="bg-white rounded-xl border p-2 shadow-sm space-y-2 relative group">
+          <img src="${item.image}" class="w-full h-36 object-cover rounded-lg">
+          <div>
+            <p class="font-bold text-sm text-gray-900 truncate">${item.brand}</p>
+            <p class="text-xs text-gray-500">${item.color} • ${item.size}</p>
+            <p class="text-xs text-gray-400 truncate">Bought: ${item.whereBought}</p>
+          </div>
+          <button onclick="deleteItem(${item.id})" class="absolute top-3 right-3 bg-red-600 text-white text-xs px-2 py-1 rounded-md opacity-80 hover:opacity-100">Delete</button>
+        </div>
+      `).join('');
+    }
+
+    function deleteItem(id) {
+      wardrobe = wardrobe.filter(i => i.id !== id);
+      localStorage.setItem('wardrobe_items', JSON.stringify(wardrobe));
+      renderWardrobe();
+    }
+
+    function renderCanvasPicker() {
+      const tray = document.getElementById('canvas-picker');
+      tray.innerHTML = wardrobe.map(item => `
+        <img src="${item.image}" onclick="addToCanvas(${item.id})" class="w-20 h-20 object-cover rounded-xl border-2 border-transparent hover:border-indigo-600 cursor-pointer flex-shrink-0 bg-white">
+      `).join('');
+    }
+
+    function addToCanvas(id) {
+      const item = wardrobe.find(i => i.id === id);
+      if (!item) return;
+
+      document.getElementById('canvas-empty-msg').classList.add('hidden');
+      currentCanvasItems.push(item);
+
+      const container = document.getElementById('canvas-items-container');
+      const img = document.createElement('img');
+      img.src = item.image;
+      img.className = 'absolute w-28 h-28 object-cover rounded-xl border shadow-md cursor-move';
+      img.style.left = `${Math.random() * 40 + 20}%`;
+      img.style.top = `${Math.random() * 40 + 20}%`;
+      container.appendChild(img);
+    }
+
+    function saveOutfit() {
+      if (currentCanvasItems.length === 0) return alert('Add at least one item to the canvas.');
+
+      const outfit = {
+        id: Date.now(),
+        date: new Date().toLocaleDateString(),
+        items: [...currentCanvasItems]
+      };
+
+      outfits.unshift(outfit);
+      localStorage.setItem('wardrobe_outfits', JSON.stringify(outfits));
+
+      currentCanvasItems = [];
+      document.getElementById('canvas-items-container').innerHTML = '';
+      document.getElementById('canvas-empty-msg').classList.remove('hidden');
+
+      alert('Outfit idea saved to Lookbook!');
+      switchTab('saved');
+    }
+
+    function renderLookbook() {
+      const grid = document.getElementById('lookbook-grid');
+      if (outfits.length === 0) {
+        grid.innerHTML = `<p class="col-span-full text-sm text-gray-400 text-center py-8">No saved outfits yet.</p>`;
+        return;
+      }
+
+      grid.innerHTML = outfits.map(o => `
+        <div class="bg-white p-4 rounded-xl border shadow-sm space-y-3">
+          <div class="flex justify-between items-center">
+            <span class="text-xs font-bold text-gray-400">Created: ${o.date}</span>
+            <span class="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full font-semibold">${o.items.length} Items</span>
+          </div>
+          <div class="flex gap-2 overflow-x-auto pb-1">
+            ${o.items.map(i => `<img src="${i.image}" class="w-16 h-16 object-cover rounded-lg border">`).join('')}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    renderWardrobe();
+  </script>
+</body>
+</html>
