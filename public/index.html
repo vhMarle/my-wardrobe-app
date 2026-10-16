@@ -71,14 +71,14 @@
             <div id="scraped-views-list" class="flex gap-2 overflow-x-auto pb-1"></div>
           </div>
 
-          <p class="text-[11px] text-gray-400">💡 <strong>Click & drag image</strong> to reposition. <strong>Drag any blue corner handle</strong> diagonally to zoom.</p>
+          <p class="text-[11px] text-gray-400">💡 Background is automatically removed. <strong>Click & drag image</strong> to reposition. <strong>Drag corner handles</strong> to scale.</p>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
             
             <!-- LEFT: Image Canvas -->
             <div class="space-y-2">
               <div class="flex justify-between items-center">
-                <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Image Adjustments</label>
+                <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Image Preview</label>
                 <button type="button" onclick="resetImageTransform()" class="text-xs font-semibold text-indigo-600 hover:underline">⟲ Reset Align</button>
               </div>
               <div class="flex justify-center">
@@ -204,7 +204,7 @@
       <div class="flex items-center justify-between">
         <div>
           <h2 class="text-lg font-bold text-gray-900">Virtual Stylist Canvas</h2>
-          <p class="text-xs text-gray-500">Tap items below onto model. Click an item to drag or scale using corner handles.</p>
+          <p class="text-xs text-gray-500">Tap items below onto model. Items render with transparent backgrounds so they overlay clean.</p>
         </div>
         <button onclick="openSaveOutfitModal()" class="bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-emerald-700 shadow-sm">Save Outfit Idea</button>
       </div>
@@ -482,6 +482,42 @@
     let isResizingCanvasCorner = false;
     let dragOffsetX = 0, dragOffsetY = 0;
 
+    // AUTOMATIC BACKGROUND REMOVAL FILTER FUNCTION
+    function removeBackgroundFromBase64(base64Data) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = 'Anonymous';
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const data = imageData.data;
+
+          // Detect background color sample from 4 corners
+          const topLeft = [data[0], data[1], data[2]];
+          const bgR = topLeft[0], bgG = topLeft[1], bgB = topLeft[2];
+          const tolerance = 45;
+
+          for (let i = 0; i < data.length; i += 4) {
+            const r = data[i], g = data[i+1], b = data[i+2];
+            const dist = Math.sqrt((r - bgR)**2 + (g - bgG)**2 + (b - bgB)**2);
+            if (dist < tolerance || (r > 235 && g > 235 && b > 235)) {
+              data[i + 3] = 0; // Set pixel alpha to completely transparent
+            }
+          }
+
+          ctx.putImageData(imageData, 0, 0);
+          resolve(canvas.toDataURL('image/png'));
+        };
+        img.onerror = () => resolve(base64Data);
+        img.src = base64Data;
+      });
+    }
+
     function switchTab(tab) {
       ['wardrobe', 'outfit', 'saved'].forEach(t => {
         document.getElementById(`view-${t}`).classList.add('hidden');
@@ -494,7 +530,6 @@
       if (tab === 'saved') renderLookbook();
     }
 
-    // DROPZONE & MODAL HANDLERS
     function openImportOptionsModal() {
       document.getElementById('modal-import-options').classList.remove('hidden');
     }
@@ -554,14 +589,16 @@
     }
 
     async function processSelectedFiles(files) {
+      document.getElementById('ai-status').innerText = '✨ Removing background...';
       currentScrapedImages = [];
       for (let i = 0; i < files.length; i++) {
-        const b64 = await new Promise(resolve => {
+        const rawB64 = await new Promise(resolve => {
           const reader = new FileReader();
           reader.onload = ev => resolve(ev.target.result);
           reader.readAsDataURL(files[i]);
         });
-        currentScrapedImages.push(b64);
+        const cleanB64 = await removeBackgroundFromBase64(rawB64);
+        currentScrapedImages.push(cleanB64);
       }
 
       activeBase64 = currentScrapedImages[0];
@@ -581,7 +618,12 @@
 
         const data = await response.json();
         if (data.success) {
-          currentScrapedImages = data.base64Images;
+          document.getElementById('ai-status').innerText = '✨ Removing background...';
+          currentScrapedImages = [];
+          for (const rawB64 of data.base64Images) {
+            const cleanB64 = await removeBackgroundFromBase64(rawB64);
+            currentScrapedImages.push(cleanB64);
+          }
           activeBase64 = currentScrapedImages[0];
           renderScrapedViewThumbnails();
           loadImageIntoEditor(activeBase64);
@@ -771,7 +813,6 @@
       renderWardrobe();
     }
 
-    // POPUP GALLERY MODAL
     function openViewItemModal(id) {
       const item = wardrobe.find(i => i.id === id);
       if (!item) return;
@@ -928,6 +969,64 @@
         return;
       }
 
+      if (currentViewMode === 'single') {
+        if (singleViewIndex >= filtered.length) singleViewIndex = 0;
+        const item = filtered[singleViewIndex];
+
+        container.innerHTML = `
+          <div class="bg-white rounded-2xl border p-4 shadow-sm max-w-md mx-auto space-y-4 relative">
+            <div onclick="openViewItemModal(${item.id})" class="relative h-80 rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center cursor-pointer">
+              <img src="${item.image}" class="max-w-full max-h-full object-contain">
+              <div class="absolute top-3 right-3 flex gap-1">
+                <button onclick="openEditItemModal(${item.id}, event)" class="bg-yellow-400 hover:bg-yellow-500 text-gray-900 p-1.5 rounded-lg text-xs shadow-sm">✏️</button>
+                <button onclick="deleteItem(${item.id}, event)" class="bg-red-500 hover:bg-red-600 text-white p-1.5 rounded-lg text-xs shadow-sm">🗑️</button>
+              </div>
+            </div>
+            <div class="space-y-1">
+              <div class="flex justify-between items-center">
+                <span class="text-xs font-bold bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-full">${item.category}</span>
+                <span class="text-xs font-semibold text-gray-400">Item ${singleViewIndex + 1} of ${filtered.length}</span>
+              </div>
+              <h3 class="text-lg font-bold text-gray-900">${item.brand}</h3>
+              <p class="text-sm text-gray-600">Color: <strong>${item.color}</strong> • Size: <strong>${item.size}</strong></p>
+              <p class="text-xs text-gray-400">Where Bought: <strong>${item.whereBought}</strong></p>
+            </div>
+            
+            <div class="flex gap-2 pt-2 border-t">
+              <button onclick="navigateSingleView(-1, ${filtered.length})" class="flex-1 py-2 bg-gray-100 rounded-xl text-xs font-semibold text-gray-700">← Previous</button>
+              <button onclick="navigateSingleView(1, ${filtered.length})" class="flex-1 py-2 bg-indigo-600 rounded-xl text-xs font-semibold text-white">Next →</button>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if (currentViewMode === 'tiles') {
+        container.innerHTML = `
+          <div class="space-y-2">
+            ${filtered.map(item => `
+              <div onclick="openViewItemModal(${item.id})" class="bg-white rounded-xl border p-2 shadow-sm flex items-center justify-between cursor-pointer hover:border-indigo-300">
+                <div class="flex items-center gap-3">
+                  <div class="w-14 h-14 bg-gray-50 rounded-lg flex items-center justify-center overflow-hidden">
+                    <img src="${item.image}" class="max-w-full max-h-full object-contain">
+                  </div>
+                  <div>
+                    <h4 class="font-bold text-sm text-gray-900">${item.brand}</h4>
+                    <p class="text-xs text-gray-500">${item.category} • ${item.color} •${item.size}</p>
+                    <p class="text-[11px] text-gray-400">Bought: ${item.whereBought}</p>
+                  </div>
+                </div>
+                <div class="flex gap-1">
+                  <button onclick="openEditItemModal(${item.id}, event)" class="bg-yellow-100 hover:bg-yellow-200 text-yellow-800 text-xs px-2 py-1 rounded-md font-bold">✏️</button>
+                  <button onclick="deleteItem(${item.id}, event)" class="bg-red-100 hover:bg-red-200 text-red-600 text-xs px-2 py-1 rounded-md font-bold">🗑️</button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+        return;
+      }
+
       const gridClass = currentViewMode === 'grid-2' ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4';
 
       container.innerHTML = `
@@ -935,12 +1034,10 @@
           ${filtered.map(item => `
             <div onclick="openViewItemModal(${item.id})" class="group relative bg-white rounded-xl border overflow-hidden shadow-xs cursor-pointer hover:border-indigo-400">
               
-              <!-- THUMBNAIL IMAGE -->
               <div class="w-full h-44 bg-gray-50 flex items-center justify-center p-2">
                 <img src="${item.image}" class="max-w-full max-h-full object-contain">
               </div>
 
-              <!-- HOVER OVERLAY DISPLAYING ALL DETAILS -->
               <div class="absolute inset-0 bg-black/80 text-white p-3 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between">
                 <div class="space-y-1 text-xs">
                   <span class="text-[10px] font-bold bg-indigo-500 text-white px-2 py-0.5 rounded-full inline-block">${item.category}</span>
@@ -960,6 +1057,11 @@
           `).join('')}
         </div>
       `;
+    }
+
+    function navigateSingleView(direction, maxLen) {
+      singleViewIndex = (singleViewIndex + direction + maxLen) % maxLen;
+      renderWardrobe();
     }
 
     function deleteItem(id, e) {
