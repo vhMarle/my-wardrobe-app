@@ -49,112 +49,87 @@
       <div class="bg-white p-5 rounded-2xl border shadow-sm space-y-4">
         <h2 class="text-lg font-bold text-gray-900">Add New Item</h2>
         
-        <div class="space-y-3">
-          <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider">1. Choose Photo Source</label>
-          <div class="flex gap-2">
-            <button type="button" onclick="setImageSourceMode('file')" id="btn-src-file" class="flex-1 py-2 px-3 border rounded-xl text-xs font-semibold bg-indigo-50 border-indigo-600 text-indigo-600 flex items-center justify-center gap-1.5">
-              📷 Camera / Gallery
-            </button>
-            <button type="button" onclick="setImageSourceMode('url')" id="btn-src-url" class="flex-1 py-2 px-3 border rounded-xl text-xs font-semibold bg-gray-50 border-gray-200 text-gray-600 flex items-center justify-center gap-1.5">
-              🌐 Web Store Link / URL
-            </button>
+        <!-- DROPZONE AREA -->
+        <div id="dropzone" 
+             onclick="openImportOptionsModal()" 
+             ondragover="handleDragOver(event)" 
+             ondragleave="handleDragLeave(event)" 
+             ondrop="handleDrop(event)"
+             class="w-full py-8 px-4 border-2 border-dashed border-indigo-300 hover:border-indigo-500 rounded-2xl bg-indigo-50/50 hover:bg-indigo-50 flex flex-col items-center justify-center cursor-pointer transition-all text-center">
+          <p class="text-base font-semibold text-indigo-900">
+            🗂️ Drag & drop images here or Browse Files
+          </p>
+          <p class="text-xs text-indigo-500 mt-1">Tap to select photo source (Camera, Web Link, or Files)</p>
+          <input type="file" id="file-input-hidden" accept="image/*" multiple class="hidden" onchange="handleFileSelect(event)">
+        </div>
+
+        <!-- SIDE-BY-SIDE EDITOR & ITEM DETAILS -->
+        <div id="editor-container" class="hidden space-y-4 pt-4 border-t">
+          
+          <div id="scraped-views-container" class="hidden space-y-1">
+            <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider block">Available Item Angles / Perspectives</label>
+            <div id="scraped-views-list" class="flex gap-2 overflow-x-auto pb-1"></div>
           </div>
 
-          <div id="container-src-file" class="block">
-            <label class="w-full h-20 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 bg-gray-50">
-              <div class="text-center p-2">
-                <span class="text-xl">📷</span>
-                <p class="text-xs text-gray-500 font-medium">Tap to upload photos from camera or gallery</p>
-              </div>
-              <input type="file" id="file-input" accept="image/*" multiple class="hidden" onchange="handleFileSelect(event)">
-            </label>
-          </div>
+          <p class="text-[11px] text-gray-400">💡 <strong>Click & drag image</strong> to reposition. <strong>Drag any blue corner handle</strong> diagonally to zoom.</p>
 
-          <div id="container-src-url" class="hidden space-y-2">
-            <div class="flex gap-2 items-center">
-              <input type="url" id="input-img-url" placeholder="Paste product URL (e.g. https://www.hillhousehome.com/products/...)" class="flex-1 p-2.5 border rounded-xl text-sm">
-              
-              <!-- Icon Import Button with Tooltip -->
-              <div class="relative group">
-                <button type="button" onclick="loadWebPageUrl()" class="bg-indigo-600 hover:bg-indigo-700 text-white p-2.5 rounded-xl text-lg flex items-center justify-center shadow-sm">
-                  📥
-                </button>
-                <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover:block bg-gray-900 text-white text-[10px] py-1 px-2 rounded whitespace-nowrap z-30 shadow-lg">
-                  Load & Scan
-                </div>
-              </div>
-
-            </div>
-          </div>
-
-          <!-- SIDE-BY-SIDE EDITOR & ITEM DETAILS -->
-          <div id="editor-container" class="hidden space-y-4 pt-4 border-t">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
             
-            <div id="scraped-views-container" class="hidden space-y-1">
-              <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider block">Available Item Angles / Perspectives</label>
-              <div id="scraped-views-list" class="flex gap-2 overflow-x-auto pb-1"></div>
-            </div>
-
-            <p class="text-[11px] text-gray-400">💡 <strong>Click & drag image</strong> to reposition. <strong>Drag any blue corner handle</strong> diagonally to zoom.</p>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-              
-              <!-- LEFT: Image Canvas -->
-              <div class="space-y-2">
-                <div class="flex justify-between items-center">
-                  <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Image Adjustments</label>
-                  <button type="button" onclick="resetImageTransform()" class="text-xs font-semibold text-indigo-600 hover:underline">⟲ Reset Align</button>
-                </div>
-                <div class="flex justify-center">
-                  <div id="crop-viewport" class="w-64 h-64 border-2 border-indigo-200 rounded-2xl bg-gray-100 relative overflow-hidden flex items-center justify-center shadow-inner cursor-grab active:cursor-grabbing">
-                    <div id="transform-wrapper" class="absolute flex items-center justify-center w-full h-full pointer-events-none" style="transform: translate(0px, 0px) scale(1);">
-                      <img id="image-preview" class="max-w-full max-h-full object-contain pointer-events-none select-none">
-                      
-                      <div id="handle-tl" data-corner="tl" class="corner-handle -top-2 -left-2 cursor-nwse-resize pointer-events-auto"></div>
-                      <div id="handle-tr" data-corner="tr" class="corner-handle -top-2 -right-2 cursor-nesw-resize pointer-events-auto"></div>
-                      <div id="handle-bl" data-corner="bl" class="corner-handle -bottom-2 -left-2 cursor-nesw-resize pointer-events-auto"></div>
-                      <div id="handle-br" data-corner="br" class="corner-handle -bottom-2 -right-2 cursor-nwse-resize pointer-events-auto"></div>
-                    </div>
+            <!-- LEFT: Image Canvas -->
+            <div class="space-y-2">
+              <div class="flex justify-between items-center">
+                <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Image Adjustments</label>
+                <button type="button" onclick="resetImageTransform()" class="text-xs font-semibold text-indigo-600 hover:underline">⟲ Reset Align</button>
+              </div>
+              <div class="flex justify-center">
+                <div id="crop-viewport" class="w-64 h-64 border-2 border-indigo-200 rounded-2xl bg-gray-100 relative overflow-hidden flex items-center justify-center shadow-inner cursor-grab active:cursor-grabbing">
+                  <div id="transform-wrapper" class="absolute flex items-center justify-center w-full h-full pointer-events-none" style="transform: translate(0px, 0px) scale(1);">
+                    <img id="image-preview" class="max-w-full max-h-full object-contain pointer-events-none select-none">
+                    
+                    <div id="handle-tl" data-corner="tl" class="corner-handle -top-2 -left-2 cursor-nwse-resize pointer-events-auto"></div>
+                    <div id="handle-tr" data-corner="tr" class="corner-handle -top-2 -right-2 cursor-nesw-resize pointer-events-auto"></div>
+                    <div id="handle-bl" data-corner="bl" class="corner-handle -bottom-2 -left-2 cursor-nesw-resize pointer-events-auto"></div>
+                    <div id="handle-br" data-corner="br" class="corner-handle -bottom-2 -right-2 cursor-nwse-resize pointer-events-auto"></div>
                   </div>
                 </div>
               </div>
+            </div>
 
-              <!-- RIGHT: Details -->
-              <div class="space-y-3">
-                <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider block">Item Details</label>
-                <div class="space-y-2.5">
-                  <div>
-                    <label class="text-xs font-semibold text-gray-500">Category</label>
-                    <select id="input-category" class="w-full p-2 border rounded-lg text-sm bg-white mt-1" onchange="handleCategoryChange()"></select>
-                  </div>
+            <!-- RIGHT: Details -->
+            <div class="space-y-3">
+              <label class="text-xs font-semibold text-gray-500 uppercase tracking-wider block">Item Details</label>
+              <div class="space-y-2.5">
+                <div>
+                  <label class="text-xs font-semibold text-gray-500">Category</label>
+                  <select id="input-category" class="w-full p-2 border rounded-lg text-sm bg-white mt-1" onchange="handleCategoryChange('input-category')"></select>
+                </div>
 
-                  <div id="custom-category-container" class="hidden">
-                    <label class="text-xs font-semibold text-indigo-600">New Category Name</label>
-                    <input type="text" id="input-custom-category" placeholder="e.g. Scarves, Hats" class="w-full p-2 border border-indigo-300 rounded-lg text-sm bg-indigo-50 mt-1">
-                  </div>
+                <div id="custom-category-container" class="hidden">
+                  <label class="text-xs font-semibold text-indigo-600">New Category Name</label>
+                  <input type="text" id="input-custom-category" placeholder="e.g. Scarves, Hats" class="w-full p-2 border border-indigo-300 rounded-lg text-sm bg-indigo-50 mt-1">
+                </div>
 
+                <div>
+                  <label class="text-xs font-semibold text-gray-500">Brand</label>
+                  <input type="text" id="input-brand" placeholder="e.g. Hill House" class="w-full p-2 border rounded-lg text-sm mt-1">
+                </div>
+                <div>
+                  <label class="text-xs font-semibold text-gray-500">Color</label>
+                  <input type="text" id="input-color" placeholder="e.g. Burgundy / Emerald" class="w-full p-2 border rounded-lg text-sm mt-1">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
                   <div>
-                    <label class="text-xs font-semibold text-gray-500">Brand</label>
-                    <input type="text" id="input-brand" placeholder="e.g. Hill House" class="w-full p-2 border rounded-lg text-sm mt-1">
+                    <label class="text-xs font-semibold text-gray-500">Size</label>
+                    <input type="text" id="input-size" placeholder="e.g. M / 10" class="w-full p-2 border rounded-lg text-sm mt-1">
                   </div>
                   <div>
-                    <label class="text-xs font-semibold text-gray-500">Color</label>
-                    <input type="text" id="input-color" placeholder="e.g. Burgundy / Emerald" class="w-full p-2 border rounded-lg text-sm mt-1">
-                  </div>
-                  <div class="grid grid-cols-2 gap-2">
-                    <div>
-                      <label class="text-xs font-semibold text-gray-500">Size</label>
-                      <input type="text" id="input-size" placeholder="e.g. M / 10" class="w-full p-2 border rounded-lg text-sm mt-1">
-                    </div>
-                    <div>
-                      <label class="text-xs font-semibold text-gray-500">Where Bought</label>
-                      <input type="text" id="input-bought" placeholder="e.g. Hill House Home" class="w-full p-2 border rounded-lg text-sm mt-1">
-                    </div>
+                    <label class="text-xs font-semibold text-gray-500">Where Bought</label>
+                    <input type="text" id="input-bought" placeholder="e.g. Hill House Home" class="w-full p-2 border rounded-lg text-sm mt-1">
                   </div>
                 </div>
               </div>
-
             </div>
+
           </div>
         </div>
 
@@ -164,7 +139,7 @@
         </div>
       </div>
 
-      <!-- INVENTORY TOOLBAR WITH WINDOWS FILE EXPLORER VIEW DROPDOWN MENU -->
+      <!-- INVENTORY TOOLBAR -->
       <div class="bg-white p-4 rounded-2xl border shadow-sm space-y-3">
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <h2 class="text-lg font-bold text-gray-900">Your Closet Items</h2>
@@ -197,7 +172,7 @@
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t text-xs">
           <div>
             <label class="font-semibold text-gray-500 mb-1 block">Filter Category</label>
-            <select id="filter-category" onchange="renderWardrobe()" class="w-full p-1.5 border rounded-lg bg-gray-50">
+            <select id="filter-category" onchange="handleCategoryChange('filter-category')" class="w-full p-1.5 border rounded-lg bg-gray-50">
               <option value="ALL">All Categories</option>
             </select>
           </div>
@@ -258,13 +233,12 @@
         <!-- RIGHT SIDEBAR: FILTERS & SELECTED ITEM LAYER CONTROLS -->
         <div class="w-full md:w-56 bg-white p-3 rounded-2xl border space-y-4 flex-shrink-0 shadow-sm">
           
-          <!-- Filters for Tray Below -->
           <div class="space-y-2">
             <h3 class="text-xs font-bold text-gray-700 uppercase tracking-wider border-b pb-1">Filter Wardrobe Tray</h3>
             
             <div>
               <label class="text-[11px] font-semibold text-gray-500">Category</label>
-              <select id="canvas-filter-cat" onchange="renderCanvasPicker()" class="w-full p-1.5 border rounded-lg text-xs bg-gray-50 mt-0.5">
+              <select id="canvas-filter-cat" onchange="handleCategoryChange('canvas-filter-cat')" class="w-full p-1.5 border rounded-lg text-xs bg-gray-50 mt-0.5">
                 <option value="ALL">All Categories</option>
               </select>
             </div>
@@ -282,7 +256,6 @@
             </div>
           </div>
 
-          <!-- Layering & Delete Controls for Selected Item -->
           <div id="canvas-controls" class="hidden space-y-2 pt-2 border-t">
             <h4 class="text-[11px] font-bold text-indigo-600 uppercase tracking-wider">Selected Garment</h4>
             
@@ -315,6 +288,61 @@
     </section>
 
   </main>
+
+  <!-- IMPORT OPTIONS MODAL -->
+  <div id="modal-import-options" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-5 max-w-xs w-full space-y-3 shadow-xl text-center">
+      <h3 class="font-bold text-gray-900 border-b pb-2">Select Image Source</h3>
+      
+      <div class="space-y-2">
+        <button onclick="triggerFileInput('camera')" class="w-full py-2.5 px-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold rounded-xl text-xs flex items-center justify-center gap-2">
+          📷 Take Photo
+        </button>
+        <button onclick="openUrlInputPrompt()" class="w-full py-2.5 px-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold rounded-xl text-xs flex items-center justify-center gap-2">
+          🌐 Paste Web Link / URL
+        </button>
+        <button onclick="triggerFileInput('gallery')" class="w-full py-2.5 px-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold rounded-xl text-xs flex items-center justify-center gap-2">
+          📁 Browse Local Files
+        </button>
+      </div>
+
+      <button onclick="closeImportOptionsModal()" class="w-full py-2 text-xs text-gray-400">Cancel</button>
+    </div>
+  </div>
+
+  <!-- URL INPUT MODAL -->
+  <div id="modal-url-input" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-5 max-w-sm w-full space-y-4 shadow-xl">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="font-bold text-gray-900">Paste Product Link</h3>
+        <button onclick="closeUrlInputModal()" class="text-gray-400">✕</button>
+      </div>
+      
+      <input type="url" id="modal-input-url" placeholder="https://www.hillhousehome.com/products/..." class="w-full p-2.5 border rounded-xl text-sm">
+
+      <div class="flex justify-end gap-2 pt-2 border-t">
+        <button onclick="closeUrlInputModal()" class="px-3 py-1.5 text-xs text-gray-600">Cancel</button>
+        <button onclick="submitUrlFromModal()" class="px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-semibold">Load & Scan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADD CATEGORY PROMPT MODAL -->
+  <div id="modal-add-category" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-5 max-w-sm w-full space-y-4 shadow-xl">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="font-bold text-gray-900">Add New Category</h3>
+        <button onclick="closeAddCategoryModal()" class="text-gray-400">✕</button>
+      </div>
+      
+      <input type="text" id="modal-input-new-cat" placeholder="e.g. Scarves, Hats, Jewelry" class="w-full p-2.5 border rounded-xl text-sm">
+
+      <div class="flex justify-end gap-2 pt-2 border-t">
+        <button onclick="closeAddCategoryModal()" class="px-3 py-1.5 text-xs text-gray-600">Cancel</button>
+        <button onclick="submitAddCategory()" class="px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-semibold">Save Category</button>
+      </div>
+    </div>
+  </div>
 
   <!-- SAVE OUTFIT CUSTOM TITLE MODAL -->
   <div id="modal-save-outfit" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -466,30 +494,71 @@
       if (tab === 'saved') renderLookbook();
     }
 
-    function setImageSourceMode(mode) {
-      activeSourceMode = mode;
-      if (mode === 'file') {
-        document.getElementById('container-src-file').classList.remove('hidden');
-        document.getElementById('container-src-url').classList.add('hidden');
-        document.getElementById('btn-src-file').className = 'flex-1 py-2 px-3 border rounded-xl text-xs font-semibold bg-indigo-50 border-indigo-600 text-indigo-600 flex items-center justify-center gap-1.5';
-        document.getElementById('btn-src-url').className = 'flex-1 py-2 px-3 border rounded-xl text-xs font-semibold bg-gray-50 border-gray-200 text-gray-600 flex items-center justify-center gap-1.5';
+    // DROPZONE & MODAL HANDLERS
+    function openImportOptionsModal() {
+      document.getElementById('modal-import-options').classList.remove('hidden');
+    }
+
+    function closeImportOptionsModal() {
+      document.getElementById('modal-import-options').classList.add('hidden');
+    }
+
+    function triggerFileInput(type) {
+      closeImportOptionsModal();
+      const hiddenInput = document.getElementById('file-input-hidden');
+      if (type === 'camera') {
+        hiddenInput.setAttribute('capture', 'environment');
       } else {
-        document.getElementById('container-src-file').classList.add('hidden');
-        document.getElementById('container-src-url').classList.remove('hidden');
-        document.getElementById('btn-src-url').className = 'flex-1 py-2 px-3 border rounded-xl text-xs font-semibold bg-indigo-50 border-indigo-600 text-indigo-600 flex items-center justify-center gap-1.5';
-        document.getElementById('btn-src-file').className = 'flex-1 py-2 px-3 border rounded-xl text-xs font-semibold bg-gray-50 border-gray-200 text-gray-600 flex items-center justify-center gap-1.5';
+        hiddenInput.removeAttribute('capture');
+      }
+      hiddenInput.click();
+    }
+
+    function openUrlInputPrompt() {
+      closeImportOptionsModal();
+      document.getElementById('modal-url-input').classList.remove('hidden');
+    }
+
+    function closeUrlInputModal() {
+      document.getElementById('modal-url-input').classList.add('hidden');
+    }
+
+    function submitUrlFromModal() {
+      const url = document.getElementById('modal-input-url').value.trim();
+      if (!url) return alert('Please enter a URL');
+      closeUrlInputModal();
+      loadWebPageUrl(url);
+    }
+
+    function handleDragOver(e) {
+      e.preventDefault();
+      document.getElementById('dropzone').classList.add('bg-indigo-100', 'border-indigo-600');
+    }
+
+    function handleDragLeave(e) {
+      e.preventDefault();
+      document.getElementById('dropzone').classList.remove('bg-indigo-100', 'border-indigo-600');
+    }
+
+    function handleDrop(e) {
+      e.preventDefault();
+      document.getElementById('dropzone').classList.remove('bg-indigo-100', 'border-indigo-600');
+      const files = e.dataTransfer.files;
+      if (files && files.length > 0) processSelectedFiles(files);
+    }
+
+    async function handleFileSelect(e) {
+      if (e.target.files && e.target.files.length > 0) {
+        processSelectedFiles(e.target.files);
       }
     }
 
-    async function handleFileSelect(event) {
-      const files = event.target.files;
-      if (!files || files.length === 0) return;
-
+    async function processSelectedFiles(files) {
       currentScrapedImages = [];
       for (let i = 0; i < files.length; i++) {
         const b64 = await new Promise(resolve => {
           const reader = new FileReader();
-          reader.onload = e => resolve(e.target.result);
+          reader.onload = ev => resolve(ev.target.result);
           reader.readAsDataURL(files[i]);
         });
         currentScrapedImages.push(b64);
@@ -501,16 +570,13 @@
       triggerAIAnalysis(activeBase64, null);
     }
 
-    async function loadWebPageUrl() {
-      const url = document.getElementById('input-img-url').value.trim();
-      if (!url) return alert('Please enter a product URL');
-
+    async function loadWebPageUrl(urlStr) {
       document.getElementById('ai-status').innerText = '⏳ Fetching all product images & details...';
       try {
         const response = await fetch('/api/scrape-url', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url })
+          body: JSON.stringify({ url: urlStr })
         });
 
         const data = await response.json();
@@ -651,33 +717,50 @@
     }
 
     function populateCategoriesUI() {
-      const selectForm = document.getElementById('input-category');
-      const selectFilter = document.getElementById('filter-category');
-      const selectModal = document.getElementById('modal-select-cat');
-      const selectEdit = document.getElementById('edit-item-category');
+      const catOptions = categories.filter(c => c !== 'Other').map(c => `<option value="${c}">${c}</option>`).join('') +
+        `<option value="ADD_NEW_CAT">＋ Add Category</option>`;
 
-      selectForm.innerHTML = categories.map(c => `<option value="${c}">${c}</option>`).join('');
-      selectFilter.innerHTML = `<option value="ALL">All Categories</option>` + categories.filter(c => c !== 'Other').map(c => `<option value="${c}">${c}</option>`).join('');
-      selectModal.innerHTML = categories.filter(c => c !== 'Other').map(c => `<option value="${c}">${c}</option>`).join('');
-      selectEdit.innerHTML = categories.filter(c => c !== 'Other').map(c => `<option value="${c}">${c}</option>`).join('');
-      
-      handleCategoryChange();
+      document.getElementById('input-category').innerHTML = catOptions;
+      document.getElementById('filter-category').innerHTML = `<option value="ALL">All Categories</option>` + catOptions;
+      document.getElementById('canvas-filter-cat').innerHTML = `<option value="ALL">All Categories</option>` + catOptions;
+      document.getElementById('modal-select-cat').innerHTML = categories.filter(c => c !== 'Other').map(c => `<option value="${c}">${c}</option>`).join('');
+      document.getElementById('edit-item-category').innerHTML = categories.filter(c => c !== 'Other').map(c => `<option value="${c}">${c}</option>`).join('');
     }
 
-    function handleCategoryChange() {
-      const selected = document.getElementById('input-category').value;
-      const customContainer = document.getElementById('custom-category-container');
-      if (selected === 'Other') {
-        customContainer.classList.remove('hidden');
+    function handleCategoryChange(selectId) {
+      const val = document.getElementById(selectId).value;
+      if (val === 'ADD_NEW_CAT') {
+        openAddCategoryModal();
+        document.getElementById(selectId).value = 'ALL';
       } else {
-        customContainer.classList.add('hidden');
+        renderWardrobe();
       }
     }
 
-    // WINDOWS FILE EXPLORER VIEW MENU DROPDOWN
+    function openAddCategoryModal() {
+      document.getElementById('modal-add-category').classList.remove('hidden');
+    }
+
+    function closeAddCategoryModal() {
+      document.getElementById('modal-add-category').classList.add('hidden');
+    }
+
+    function submitAddCategory() {
+      const newCat = document.getElementById('modal-input-new-cat').value.trim();
+      if (!newCat) return alert('Enter a category name');
+
+      if (!categories.includes(newCat)) {
+        categories.splice(categories.length - 1, 0, newCat);
+        localStorage.setItem('wardrobe_categories', JSON.stringify(categories));
+        populateCategoriesUI();
+      }
+
+      document.getElementById('modal-input-new-cat').value = '';
+      closeAddCategoryModal();
+    }
+
     function toggleViewDropdown() {
-      const menu = document.getElementById('view-menu-dropdown');
-      menu.classList.toggle('hidden');
+      document.getElementById('view-menu-dropdown').classList.toggle('hidden');
     }
 
     function selectViewMode(mode, label, icon) {
@@ -785,20 +868,7 @@
       if (!activeBase64) return alert('Please upload a photo or provide a product URL first.');
 
       let selectedCategory = document.getElementById('input-category').value;
-      
-      if (selectedCategory === 'Other') {
-        const customCat = document.getElementById('input-custom-category').value.trim();
-        if (customCat) {
-          selectedCategory = customCat;
-          if (!categories.includes(customCat)) {
-            categories.splice(categories.length - 1, 0, customCat);
-            localStorage.setItem('wardrobe_categories', JSON.stringify(categories));
-            populateCategoriesUI();
-          }
-        } else {
-          selectedCategory = 'Uncategorized';
-        }
-      }
+      if (selectedCategory === 'ADD_NEW_CAT') selectedCategory = 'Uncategorized';
 
       const newItem = {
         id: Date.now(),
@@ -818,12 +888,10 @@
       currentScrapedImages = [];
       document.getElementById('editor-container').classList.add('hidden');
       document.getElementById('scraped-views-container').classList.add('hidden');
-      document.getElementById('input-img-url').value = '';
       document.getElementById('input-brand').value = '';
       document.getElementById('input-color').value = '';
       document.getElementById('input-size').value = '';
       document.getElementById('input-bought').value = '';
-      document.getElementById('input-custom-category').value = '';
       document.getElementById('ai-status').innerText = '';
 
       updateFilterDropdowns();
@@ -837,8 +905,6 @@
       document.getElementById('filter-color').innerHTML = `<option value="ALL">All Colors</option>` + colors.map(c => `<option value="${c}">${c}</option>`).join('');
       document.getElementById('filter-brand').innerHTML = `<option value="ALL">All Brands</option>` + brands.map(b => `<option value="${b}">${b}</option>`).join('');
 
-      // Populate Outfit Canvas Filter Dropdowns
-      document.getElementById('canvas-filter-cat').innerHTML = `<option value="ALL">All Categories</option>` + categories.filter(c => c !== 'Other').map(c => `<option value="${c}">${c}</option>`).join('');
       document.getElementById('canvas-filter-col').innerHTML = `<option value="ALL">All Colors</option>` + colors.map(c => `<option value="${c}">${c}</option>`).join('');
       document.getElementById('canvas-filter-brand').innerHTML = `<option value="ALL">All Brands</option>` + brands.map(b => `<option value="${b}">${b}</option>`).join('');
     }
@@ -862,94 +928,38 @@
         return;
       }
 
-      if (currentViewMode === 'single') {
-        if (singleViewIndex >= filtered.length) singleViewIndex = 0;
-        const item = filtered[singleViewIndex];
-
-        container.innerHTML = `
-          <div class="bg-white rounded-2xl border p-4 shadow-sm max-w-md mx-auto space-y-4 relative">
-            <div onclick="openViewItemModal(${item.id})" class="relative h-80 rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center cursor-pointer">
-              <img src="${item.image}" class="max-w-full max-h-full object-contain">
-              <div class="absolute top-3 right-3 flex gap-1">
-                <button onclick="openEditItemModal(${item.id}, event)" class="bg-yellow-400 hover:bg-yellow-500 text-gray-900 p-1.5 rounded-lg text-xs shadow-sm">✏️</button>
-                <button onclick="deleteItem(${item.id}, event)" class="bg-red-500 hover:bg-red-600 text-white p-1.5 rounded-lg text-xs shadow-sm">🗑️</button>
-              </div>
-            </div>
-            <div class="space-y-1">
-              <div class="flex justify-between items-center">
-                <span class="text-xs font-bold bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-full">${item.category}</span>
-                <span class="text-xs font-semibold text-gray-400">Item ${singleViewIndex + 1} of ${filtered.length}</span>
-              </div>
-              <h3 class="text-lg font-bold text-gray-900">${item.brand}</h3>
-              <p class="text-sm text-gray-600">Color: <strong>${item.color}</strong> • Size: <strong>${item.size}</strong></p>
-              <p class="text-xs text-gray-400">Where Bought: <strong>${item.whereBought}</strong></p>
-            </div>
-            
-            <div class="flex gap-2 pt-2 border-t">
-              <button onclick="navigateSingleView(-1, ${filtered.length})" class="flex-1 py-2 bg-gray-100 rounded-xl text-xs font-semibold text-gray-700">← Previous</button>
-              <button onclick="navigateSingleView(1, ${filtered.length})" class="flex-1 py-2 bg-indigo-600 rounded-xl text-xs font-semibold text-white">Next →</button>
-            </div>
-          </div>
-        `;
-        return;
-      }
-
-      if (currentViewMode === 'tiles') {
-        container.innerHTML = `
-          <div class="space-y-2">
-            ${filtered.map(item => `
-              <div onclick="openViewItemModal(${item.id})" class="bg-white rounded-xl border p-2 shadow-sm flex items-center justify-between cursor-pointer hover:border-indigo-300">
-                <div class="flex items-center gap-3">
-                  <div class="w-14 h-14 bg-gray-50 rounded-lg flex items-center justify-center overflow-hidden">
-                    <img src="${item.image}" class="max-w-full max-h-full object-contain">
-                  </div>
-                  <div>
-                    <h4 class="font-bold text-sm text-gray-900">${item.brand}</h4>
-                    <p class="text-xs text-gray-500">${item.category} • ${item.color} •${item.size}</p>
-                    <p class="text-[11px] text-gray-400">Bought: ${item.whereBought}</p>
-                  </div>
-                </div>
-                <div class="flex gap-1">
-                  <button onclick="openEditItemModal(${item.id}, event)" class="bg-yellow-100 hover:bg-yellow-200 text-yellow-800 text-xs px-2 py-1 rounded-md font-bold">✏️</button>
-                  <button onclick="deleteItem(${item.id}, event)" class="bg-red-100 hover:bg-red-200 text-red-600 text-xs px-2 py-1 rounded-md font-bold">🗑️</button>
-                </div>
-              </div>
-            `).join('')}
-          </div>
-        `;
-        return;
-      }
-
       const gridClass = currentViewMode === 'grid-2' ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4';
 
       container.innerHTML = `
         <div class="grid ${gridClass} gap-4">
           ${filtered.map(item => `
-            <div onclick="openViewItemModal(${item.id})" class="bg-white rounded-xl border p-2.5 shadow-sm space-y-2 relative group flex flex-col justify-between cursor-pointer hover:border-indigo-300">
-              <div>
-                <div class="w-full h-36 rounded-lg bg-gray-50 flex items-center justify-center overflow-hidden">
-                  <img src="${item.image}" class="max-w-full max-h-full object-contain">
+            <div onclick="openViewItemModal(${item.id})" class="group relative bg-white rounded-xl border overflow-hidden shadow-xs cursor-pointer hover:border-indigo-400">
+              
+              <!-- THUMBNAIL IMAGE -->
+              <div class="w-full h-44 bg-gray-50 flex items-center justify-center p-2">
+                <img src="${item.image}" class="max-w-full max-h-full object-contain">
+              </div>
+
+              <!-- HOVER OVERLAY DISPLAYING ALL DETAILS -->
+              <div class="absolute inset-0 bg-black/80 text-white p-3 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between">
+                <div class="space-y-1 text-xs">
+                  <span class="text-[10px] font-bold bg-indigo-500 text-white px-2 py-0.5 rounded-full inline-block">${item.category}</span>
+                  <p class="font-bold text-sm text-indigo-200 truncate">${item.brand}</p>
+                  <p>Color: <strong>${item.color}</strong></p>
+                  <p>Size: <strong>${item.size}</strong></p>
+                  <p class="truncate">Bought: <strong>${item.whereBought}</strong></p>
                 </div>
-                <div class="mt-2 space-y-0.5">
-                  <span class="text-[10px] font-bold bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full inline-block mb-1">${item.category}</span>
-                  <p class="font-bold text-sm text-gray-900 truncate">${item.brand}</p>
-                  <p class="text-xs text-gray-500">${item.color} •${item.size}</p>
-                  <p class="text-[11px] text-gray-400 truncate">Bought: ${item.whereBought}</p>
+
+                <div class="flex justify-end gap-1.5 pt-2 border-t border-gray-700">
+                  <button onclick="openEditItemModal(${item.id}, event)" class="bg-yellow-400 hover:bg-yellow-500 text-gray-900 text-xs px-2 py-1 rounded font-bold">✏️</button>
+                  <button onclick="deleteItem(${item.id}, event)" class="bg-red-500 hover:bg-red-600 text-white text-xs px-2 py-1 rounded font-bold">🗑️</button>
                 </div>
               </div>
-              <div class="flex justify-end gap-1 mt-2 pt-1 border-t">
-                <button onclick="openEditItemModal(${item.id}, event)" class="bg-yellow-100 hover:bg-yellow-200 text-yellow-800 text-xs px-2 py-1 rounded-md font-bold">✏️</button>
-                <button onclick="deleteItem(${item.id}, event)" class="bg-red-100 hover:bg-red-200 text-red-600 text-xs px-2 py-1 rounded-md font-bold">🗑️</button>
-              </div>
+
             </div>
           `).join('')}
         </div>
       `;
-    }
-
-    function navigateSingleView(direction, maxLen) {
-      singleViewIndex = (singleViewIndex + direction + maxLen) % maxLen;
-      renderWardrobe();
     }
 
     function deleteItem(id, e) {
@@ -960,7 +970,6 @@
       renderWardrobe();
     }
 
-    // CANVAS WITH CORNER HANDLES FOR STYLING
     function renderCanvasPicker() {
       const tray = document.getElementById('canvas-picker');
       const filterCat = document.getElementById('canvas-filter-cat')?.value || 'ALL';
@@ -1108,7 +1117,6 @@
       renderCanvasItems();
     }
 
-    // SAVE OUTFIT CUSTOM TITLE MODAL LOGIC
     function openSaveOutfitModal() {
       if (canvasItems.length === 0) return alert('Add at least one item onto the mannequin first.');
       document.getElementById('input-outfit-title').value = '';
